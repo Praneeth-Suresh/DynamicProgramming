@@ -1,87 +1,110 @@
-# Clean and Simple Beamer Presentation Template
+# Beyond Dynamic Programming — Workshop Slides
 
-This repository provides a clean and simple template for presentations made
-with the LaTeX [beamer package](https://ctan.org/pkg/beamer).
-The design is based on the [metropolis theme](https://github.com/matze/mtheme).
+An interactive, technically advanced workshop on dynamic programming, built on the
+[beamer](https://ctan.org/pkg/beamer) [metropolis theme](https://github.com/matze/mtheme).
+The deck takes an audience of strong programmers (competitive-programming and research
+backgrounds) from the state-space view of DP through case studies, speed-up techniques, and
+Bellman's equations for Markov decision processes.
 
-It is highlighted by many guides on good slide design that slides should
-contain no clutter and as few objects as possible.
-Jean-luc Doumont says the following about slide templates in his talk about
-[Creating effective slides](https://youtu.be/meBXuTIPJQk?t=2200):
-> A template is a way to specify where the content should come and how the
-> content should look once it comes there.  
-> As long as you don't have content, there should be nothing.
+The slides are designed to be **discursive**: every few slides contain an audience-engagement
+element (poll, vote, predict, discuss, or pair), and the case studies ask the room to judge
+candidate solutions before the answer is revealed.
 
 
-# Installation
-## On GitHub
-Click on ["Use this template"](https://github.com/new?template_name=beamer-presentation-template&template_owner=klb2).
+# Contents
 
-## Local Installation
-Simply copy all of the `*.tex` files into a new folder.
-Alternatively, you can use the
-[`mkbeamerprsentation.sh`](mkbeamerprsentation.sh) script to automatically do
-this for you.
-The following command will create a new directory `name-of-the-paper-directory`
-with the template and initialize a new Git repository.
+| File | Purpose |
+|------|---------|
+| `presentation.tex` | Main file to compile. Sets the title and includes the five content files. |
+| `content-01-foundations.tex` | Part 1: DP from first principles (state spaces, the DAG view, the recipe), motivated by edit distance. |
+| `content-02-case-studies.tex` | Part 2: three LeetCode case studies with candidate solutions to vote on, including two false positives. |
+| `content-03-going-faster.tex` | Part 3: two speed-ups — the convex hull trick and a broken-profile bitmask DP. |
+| `content-04-beyond.tex` | Part 4: MDPs, the Bellman equations, value/policy iteration, and asynchronous DP. |
+| `content-05-closing.tex` | Part 5: semirings, DP in linear optimisation, the summary, and the appendix. |
+| `setup-workshop.tex` | Workshop-specific macros (the `\audience` engagement box, state-space TikZ styles). |
+| `setup-*.tex` | Theme, colour, maths, and plot setup inherited from the template. |
+| `WORKSHOP_GUIDE.md` | Presenter's guide: how each interaction type runs, and a per-slide script with expected answers. |
+
+The deck is roughly 71 numbered slides plus section dividers and a short appendix (references
+and a backup slide). Several slides use overlays, so the rendered PDF has more pages than there
+are numbered slides. Suggested running time is about 2.5 to 3 hours with discussion.
+
+
+# Structure of the workshop
+
+1. **Dynamic Programming from First Principles.** Introduces the *state space* of a problem and
+   shows that when it forms a directed acyclic graph (DAG), the problem is solved by dynamic
+   programming. Presents a four-step strategy — decompose the problem into a state space, state
+   the base case and inductive step, evaluate bottom-up, and reconstruct the solution if needed —
+   and reads off complexity as number of states times cost per state. Fully motivated by a single
+   example (edit distance).
+2. **Is It Dynamic Programming? Case Studies.** Problems that are and are not best solved by DP,
+   with suggested solutions the audience judges:
+   - *Split Array Largest Sum* — a false positive (DP is correct but inefficient);
+   - *Maximum weight independent set on a tree* — a genuine DP;
+   - *Minimum Initial Energy to Finish Tasks* — a false positive (no compact sufficient state).
+3. **Going Faster.** Two techniques: changing the recurrence (the convex hull trick) and changing
+   the compute order (a DP-plus-bitmask / broken-profile approach).
+4. **Beyond Programming Problems.** Reinforcement learning as a Markov decision process, solved via
+   the Bellman equations with dynamic programming, and the more advanced topic of asynchronous
+   dynamic programming, which relaxes the assumptions of the classical techniques.
+5. **Other Places, and What We Learned.** A short linear-optimisation example solved by DP, and a
+   closing summary of the workshop.
+
+Throughout, every solution to a DP problem is presented as a **recurrence**, in mathematical form,
+never as code.
+
+
+# Requirements
+
+- A LaTeX installation including the [metropolis theme](https://ctan.org/pkg/beamertheme-metropolis),
+  which ships with popular distributions (TeX Live, MiKTeX).
+- Compile with **`lualatex`**; the [Fira fonts](https://github.com/mozilla/Fira) are the theme's
+  default. Install them on your machine if you want to use them.
+
+
+# Building
 
 ```bash
-bash mkbeamerprsentation.sh name-of-the-paper-directory
+lualatex presentation.tex   # run twice so the outline and slide numbering settle
 ```
 
-## Requirements
-Make sure that you have a LaTeX installation on your computer, which includes
-the [metropolis theme](https://ctan.org/pkg/beamertheme-metropolis). It should
-be included in every popular LaTeX distribution like TeX live or MiKTeX.
+If you prefer a container with everything preinstalled:
 
-If you want to use the [Fira fonts](https://github.com/mozilla/Fira), you need
-to install them on your machine first.
-
-
-# Usage
-The file `presentation.tex` is the main file that needs to be compiled. It is
-recommended to use `lualatex`, if you want to use the Fira fonts that are the
-default fonts in the metropolis theme.
-
-
-# Customization
-## Colors
-The template allows an easy customization of the colors and styles according to
-your needs.
-In particular, you only need to edit the color definitions in the
-[`setup-colors.tex`](setup-colors.tex) file.
-
-There are four colors in this theme which you can adjust to your needs:
-```latex
-\definecolor{accent}{HTML}{7EBDC2} % accent color
-\definecolor{bgcolor}{HTML}{FCFCFF} % background color
-\definecolor{bgcolorAlt}{HTML}{ECF1FC} % alternative/second background color
-\definecolor{fgcolor}{HTML}{222244} % foreground/text color
+```bash
+docker run --rm -v "$PWD":/work -w /work texlive/texlive:latest \
+  sh -c "lualatex presentation.tex && lualatex presentation.tex"
 ```
 
-`accent`
-: Accent color that is used for the progress bar and `\alert{text}`.
 
-`bgcolor`
-: Main background color that is used as the background color of the slides.
+# Customising
 
-`bgcolorAlt`
-: Second/alternative background color that is used as the background color of
-the slide titles and as the background color for boxes.
+- **Title / author.** Edit `\title`, `\author`, `\institute`, and `\date` in `presentation.tex`.
+- **Logo.** Uncomment the `\titlegraphic{...}` line in `presentation.tex` and point it at your
+  institution's logo.
+- **Colours.** Edit the four colour definitions in [`setup-colors.tex`](setup-colors.tex):
 
-`fgcolor`
-: Foreground color that is used as the text color.
+  ```latex
+  \definecolor{accent}{HTML}{7EBDC2}    % progress bar and \alert{text}
+  \definecolor{bgcolor}{HTML}{FCFCFF}   % slide background
+  \definecolor{bgcolorAlt}{HTML}{ECF1FC}% title and box background
+  \definecolor{fgcolor}{HTML}{222244}   % text colour
+  ```
+- **Audience boxes.** Each engagement element is an `\audience{<type>}{<prompt>}` box defined in
+  `setup-workshop.tex`. Add or move them to keep interaction frequent.
 
-## Logo
-If you want to show the logo of your institution/university on the title page,
-you simple need to adjust the `\titlegraphic` command like
-```latex
-\titlegraphic{\includegraphics[height=.17\textheight]{logo.png}}
-```
-where `logo.png` refers to the image file of the logo.
 
-# Example
-The following image shows the provided example slides with an example color
-scheme.
+# Notes
 
-![example presentation](example.png "Example slides with the predefined style")
+- The remarks about the LeetCode problems are from memory of their statements; verify the current
+  statements and constraints before presenting if you intend to quote them.
+- The recurrences and counterexamples in the deck were checked against brute force before the deck
+  was built.
+- The `mkbeamerpresentation.sh` helper from the original template copies only `presentation.tex`
+  and the `setup-*.tex` files; it does not pick up the `content-*.tex` files added here.
+
+
+# License
+
+See [`LICENSE`](LICENSE). The template this is based on is a clean-and-simple beamer presentation
+template using the metropolis theme.

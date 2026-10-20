@@ -1,0 +1,215 @@
+\section{Other Places, and What We Learned}
+
+\begin{frame}{One DAG, many semirings}
+	The recurrence $d(v)=\bigoplus_{u\to v}d(u)\otimes w(u,v)$ is a path problem over a semiring $(K,\oplus,\otimes)$.
+	Changing the semiring changes the problem, not the algorithm.
+
+	\small
+	\begin{center}
+		\renewcommand{\arraystretch}{1.15}
+		\begin{tabularx}{\textwidth}{@{}llX@{}}
+			\toprule
+			$(\oplus,\otimes)$ & Computes & Examples\\
+			\midrule
+			$(\min,+)$ & shortest path & edit distance, Part~1\\
+			$(\max,+)$ & longest path & Viterbi in log-space, critical path\\
+			$(+,\times)$ & weighted path sum & domino tilings (Part~3), HMM forward algorithm\\
+			$(\max,\times)$ & most probable path & Viterbi, probabilistic CYK\\
+			$(\min,\max)$ & bottleneck path & Case~1 (split array), minimax routing\\
+			$(\vee,\wedge)$ & reachability & parsing recognition, regular-expression matching\\
+			\bottomrule
+		\end{tabularx}
+	\end{center}
+\end{frame}
+
+\begin{frame}{Name the semiring}
+	\audience{Vote}{%
+		Which semiring (if any) governs each recurrence?
+		\begin{enumerate}
+			\item[(a)] $N(i)=\sum_{j<i}N(j)\,[\,\text{edge }j\to i\,]$ (number of paths)
+			\item[(b)] $f(i,j)=\min_p\max\{f(p,j-1),S_i-S_p\}$
+			\item[(c)] $V_t(s)=\max_a\bigl[r+\sum_{s'}P(s'|s,a)V_{t+1}(s')\bigr]$
+		\end{enumerate}
+	}
+
+	\uncover<2->{%
+		\small
+		(a) $(+,\times)$. (b) $(\min,\max)$. (c) \alert{None}: it alternates $\max$ over actions with an
+		expectation over successors, so it is a path problem on an AND/OR graph (a hypergraph). For a \emph{fixed} policy
+		it collapses to $(+,\times)$ and becomes linear: $v_\pi=r_\pi+\gamma P_\pi v_\pi$.
+	}
+\end{frame}
+
+\begin{frame}{Linear optimisation: a staircase LP}
+	\small
+	\textbf{Production planning.} Periods $t=1,\dots,T$; demand $d_t$, unit production cost $c_t$, capacity $u$,
+	unit holding cost $h$, inventory $s_t$ with $s_1$ given.
+	\begin{align*}
+		\min\quad & \sum_{t=1}^{T}\bigl(c_tx_t+h\,s_{t+1}\bigr)\\
+		\text{s.t.}\quad & s_{t+1}=s_t+x_t-d_t, \qquad 0\le x_t\le u, \qquad s_{t+1}\ge0.
+	\end{align*}
+	This is an LP in $2T$ variables. Constraint $t$ involves only $(s_t,x_t,s_{t+1})$: a \alert{staircase} structure.
+	Inventory $s_t$ is a sufficient state, and the LP is a path in a (continuous) state space:
+	\[
+		V_{T+1}\equiv0,\qquad
+		V_t(s)=\min_{\substack{0\le x\le u\\ s+x-d_t\ge0}}\Bigl\{c_tx+h(s+x-d_t)+V_{t+1}(s+x-d_t)\Bigr\}.
+	\]
+	The state is real-valued: no table. What does $V_t$ look like?
+\end{frame}
+
+\begin{frame}{The value functions are piecewise linear and convex}
+	\small
+	\begin{columns}[T,onlytextwidth]
+		\column{0.52\textwidth}
+		\begin{tikzpicture}
+			\begin{axis}[
+				betterplot,
+				width=\linewidth, height=5.2cm,
+				xmin=0,xmax=7,ymin=0,ymax=13,
+				xlabel={$s$},ylabel={$V_t(s)$},
+				legend pos=north east, legend style={font=\scriptsize},
+				]
+				\addplot[plot0,thick,mark=*] coordinates {(0,12)(1,10)(2,8)(3,7)(4,6)(5,5)(6,6)(7,7)};
+				\addplot[plot2,thick,mark=square*] coordinates {(0,11)(1,8)(2,5)(3,2)(4,2)(5,2)(6,4)(7,6)};
+				\legend{$V_1$,$V_2$}
+			\end{axis}
+		\end{tikzpicture}
+
+		\column{0.44\textwidth}
+		\small
+		$T=3$, $d=(2,3,2)$, $c=(1,3,1)$, $u=3$, $h=1$.
+
+		\begin{theorem}
+			Each $V_t$ is convex and piecewise linear on its domain.
+		\end{theorem}
+		\textit{Proof.} $V_t(s)$ is the optimal value of an LP whose right-hand side depends affinely on $s$;
+		partial minimisation of a jointly convex polyhedral function over a polyhedron is convex and polyhedral.
+		By induction, $V_{t+1}$ has the same form.
+	\end{columns}
+
+	\seprule
+
+	\small DP is exact here without discretisation: represent $V_t$ by its breakpoints or its supporting lines (\emph{cuts}).
+\end{frame}
+
+\begin{frame}{Reading the slopes}
+	\audience{Predict}{%
+		$V_2$ has slope $-3$ on $[0,3]$, slope $0$ on $[3,5]$ and slope $+2$ on $[5,7]$.
+		Explain each slope in terms of what one extra unit of inventory does.
+	}
+
+	\uncover<2->{%
+		\small
+		\begin{itemize}
+			\item $[0,3]$: one extra unit avoids producing a unit at $c_2=3$ in period $2$: saving $3$.
+			\item $[3,5]$: demand of period $2$ is covered; the extra unit then replaces production at $c_3=1$ in period $3$ but costs holding $h=1$: net $0$.
+			\item $[5,7]$: all demand is covered; the extra unit is just held through periods $2$ and $3$: cost $2h=2$.
+		\end{itemize}
+		The slopes of $V_t$ are the LP \alert{dual variables} (shadow prices). Stochastic dual dynamic programming (SDDP)
+		builds $V_t$ from exactly these supporting lines.
+	}
+\end{frame}
+
+\begin{frame}{The other direction: MDPs as linear programs}
+	\small
+	For $\mu>0$ consider
+	\[
+		\min_v\;\sum_s\mu(s)v(s)\quad\text{s.t.}\quad v(s)\ge r(s,a)+\gamma\sum_{s'}P(s'|s,a)v(s')\quad\forall s,a.
+	\]
+	\textbf{Claim:} $v^\star$ is the unique optimum. Feasibility means $v\ge\Bell v$; by monotonicity of $\Bell$,
+	$v\ge\Bell^kv\to v^\star$. So every feasible $v$ dominates $v^\star$, which is itself feasible.
+
+	\seprule
+
+	The dual variables $x(s,a)\ge0$ are \alert{discounted state-action occupancy measures}:
+	\[
+		\max_x\sum_{s,a}r(s,a)x(s,a)\quad\text{s.t.}\quad\sum_ax(s',a)-\gamma\sum_{s,a}P(s'|s,a)x(s,a)=\mu(s').
+	\]
+	Complementary slackness says $x(s,a)>0$ only if $a$ attains the maximum in the Bellman optimality equation.
+	\textbf{Bellman optimality $=$ LP optimality conditions.}
+\end{frame}
+
+\begin{frame}{Dynamic programming elsewhere}
+	\small
+	\begin{center}
+		\renewcommand{\arraystretch}{1.15}
+		\begin{tabularx}{\textwidth}{@{}lX@{}}
+			\toprule
+			Area & Dynamic programming in disguise\\
+			\midrule
+			Computational biology & Needleman--Wunsch / Smith--Waterman alignment; RNA folding (Nussinov, Zuker)\\
+			Language and speech & Viterbi decoding; CYK; inside--outside algorithm\\
+			Probabilistic inference & Variable elimination / junction trees: DP over a tree decomposition of the model\\
+			Optimal control & LQR: $V_t(x)=x^\top P_tx$ with the Riccati recursion for $P_t$\\
+			Operations research & Multi-stage (stochastic) LPs and SDDP; DP-based algorithms for integer programs with small coefficients\\
+			Economics & Recursive formulations of consumption and growth (Bellman equations over continuous states)\\
+			\bottomrule
+		\end{tabularx}
+	\end{center}
+\end{frame}
+
+\begin{frame}{Your turn}
+	\audience{Pair}{%
+		Turn to your neighbour for three minutes. Pick a problem you work on.
+		\begin{enumerate}
+			\item What is a \textbf{sufficient state}? Is the state graph a DAG?
+			\item Which \textbf{semiring} is it? What is the \textbf{edge count}?
+			\item Which \textbf{lever} (recurrence, order, schedule) could reduce it?
+		\end{enumerate}
+		Then we collect two or three examples, including the ones that \emph{failed} the test.
+	}
+\end{frame}
+
+\begin{frame}{What we learned}
+	\begin{enumerate}
+		\item \textbf{DP is path-finding in a state space.} A sufficient state and an acyclic order give a recurrence, and complexity is the number of edges.
+		\item \textbf{Not every sequence of decisions is a DP.} Check for a compact sufficient state \emph{and} for cheaper structure (monotone decision problems, exchange arguments).
+		\item \textbf{Speed comes from the shape of the DAG.} Rewrite the recurrence (convex hull trick) or refine the order (broken profile).
+		\item \textbf{Beyond DAGs, DP is a fixed-point computation.} Bellman operators are contractions; value iteration, policy iteration and \emph{asynchronous} schedules are different ways of reaching the fixed point.
+		\item \textbf{The reach is wide.} Semirings, linear programs, control and learning share the same recurrence.
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}[standout,plain]
+	Questions and discussion
+\end{frame}
+
+\appendix
+
+\begin{frame}{References (1/2)}
+	\footnotesize
+	\begin{itemize}
+		\item R.~Bellman. \emph{Dynamic Programming}. Princeton University Press, 1957.
+		\item D.~Bertsekas. Distributed dynamic programming. \emph{IEEE Trans.\ Automatic Control}, 1982.
+		\item D.~Bertsekas, J.~Tsitsiklis. \emph{Parallel and Distributed Computation}. Prentice Hall, 1989.
+		\item A.~Barto, S.~Bradtke, S.~Singh. Learning to act using real-time dynamic programming. \emph{Artificial Intelligence}, 1995.
+		\item R.~Sutton, A.~Barto. \emph{Reinforcement Learning: An Introduction}, 2nd ed., MIT Press, 2018 (Ch.~3--4).
+		\item M.~Puterman. \emph{Markov Decision Processes}. Wiley, 1994.
+		\item Y.~Ye. The simplex and policy-iteration methods are strongly polynomial for the Markov decision problem with a fixed discount rate. \emph{Math.\ of Operations Research}, 2011.
+		\item A.~Moore, C.~Atkeson. Prioritized sweeping. \emph{Machine Learning}, 1993.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{References (2/2)}
+	\footnotesize
+	\begin{itemize}
+		\item C.~Watkins, P.~Dayan. Q-learning. \emph{Machine Learning}, 1992; J.~Tsitsiklis. Asynchronous stochastic approximation and Q-learning. \emph{Machine Learning}, 1994.
+		\item A.~Backurs, P.~Indyk. Edit distance cannot be computed in strongly subquadratic time (unless SETH is false). STOC 2015.
+		\item E.~Myers. An $O(ND)$ difference algorithm and its variations. \emph{Algorithmica}, 1986.
+		\item D.~Hirschberg. A linear space algorithm for computing maximal common subsequences. \emph{CACM}, 1975.
+		\item M.~Pereira, L.~Pinto. Stochastic dual dynamic programming. \emph{Math.\ Programming}, 1991.
+		\item R.~Larmore, B.~Schieber. On-line dynamic programming with applications to the prediction of RNA secondary structure. \emph{J.\ Algorithms}, 1991.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: the Damerau--Levenshtein state}
+	The unrestricted distance (Lowrance--Wagner) allows material to be edited between the two
+	transposed symbols. For each $(i,j)$ let $i'<i$ be the last position with $x_{i'}=y_j$ and $j'<j$ the last
+	position with $y_{j'}=x_i$ (when both exist). Add the edge
+	\[
+		(i'-1,j'-1)\to(i,j),\qquad \cost=(i-i'-1)+1+(j-j'-1),
+	\]
+	meaning: delete the gap in $x$, transpose, insert the gap in $y$.
+	Time $O(mn)$ with $O(|\Sigma|)$ extra memory for the last-occurrence tables.
+	The state is still $(i,j)$, but the \emph{edge set} reaches back arbitrarily far.
+\end{frame}

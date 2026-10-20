@@ -1,0 +1,26 @@
+% Workshop-specific helpers (kept separate from the template's setup-*.tex files)
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+% Audience-engagement block. Every engagement frame uses this macro, which also
+% lets the build check (see WORKSHOP_GUIDE.md) verify the "one per five slides" rule.
+%   #1: type of interaction (Poll, Vote, Predict, Discuss, Pair, ...)
+%   #2: the prompt shown to the audience
+\newcommand{\audience}[2]{%
+	\begin{alertblock}{Audience \textbar{} #1}#2\end{alertblock}%
+}
+
+% Maths shorthands used throughout
+\newcommand*{\Sn}{S}                         % prefix sums
+\newcommand*{\indic}[1]{\ensuremath{\mathds{1}\!\left[#1\right]}}
+\newcommand*{\cost}{\ensuremath{w}}
+\newcommand*{\Bell}{\ensuremath{\mathcal{T}}} % Bellman operator
+\DeclareMathOperator{\gc}{gc}                  % grandchildren
+\DeclareMathOperator{\ch}{ch}                  % children
+\newcommand*{\supnorm}[1]{\ensuremath{\left\lVert #1\right\rVert_\infty}}
+
+% Styles for state-space drawings
+\tikzset{
+	st/.style={circle,draw=fgcolor,fill=bgcolorAlt,inner sep=0pt,minimum size=4mm,font=\tiny},
+	e/.style={-{Stealth[length=1.5mm]},draw=fgcolor!45},
+	hl/.style={-{Stealth[length=1.8mm]},draw=accent,line width=1.4pt},
+}

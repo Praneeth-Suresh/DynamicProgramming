@@ -1,0 +1,330 @@
+\section{Beyond Programming Problems: MDPs}
+
+\begin{frame}{Where dynamic programming was invented}
+	Bellman's original setting: \alert{sequential decisions under uncertainty}.
+	An agent observes a state, acts, receives a reward, and the environment moves stochastically.
+
+	\seprule
+
+	Compare with Part~1. Three assumptions are about to break:
+	\begin{enumerate}
+		\item transitions are \textbf{stochastic} (edges become distributions);
+		\item the horizon may be \textbf{unbounded}, so the state graph has \textbf{cycles};
+		\item the state space may be too large to sweep (\textbf{Go}, \textbf{robotics}, \textbf{datacentre control}).
+	\end{enumerate}
+	We keep the ideas (state, optimal substructure, recurrence, reconstruction) and see what each becomes.
+\end{frame}
+
+\begin{frame}{Markov decision processes}
+	\begin{block}{Definition}
+		$\mathcal M=(\mathcal S,\mathcal A,P,r,\gamma)$ with finite $\mathcal S,\mathcal A$; transition kernel
+		$P(s'\mid s,a)$; expected reward $r(s,a)$; discount $\gamma\in[0,1)$.
+	\end{block}
+
+	A (stationary) policy $\pi(a\mid s)$ induces the return $G_t=\sum_{k\ge0}\gamma^kR_{t+k+1}$ and
+	\[
+		v_\pi(s)=\expect[\pi]{G_t\mid S_t=s},\qquad
+		q_\pi(s,a)=\expect[\pi]{G_t\mid S_t=s,A_t=a}.
+	\]
+	The goal: $v^\star(s)=\max_\pi v_\pi(s)$ for all $s$ simultaneously.
+
+	\seprule
+
+	The \alert{Markov property} is exactly the sufficiency condition of Part~1: the future depends on the past only through $S_t$.
+\end{frame}
+
+\begin{frame}{Edit distance as an MDP}
+	\audience{Discuss}{%
+		Cast the edit-distance problem as an MDP: what are $\mathcal S$, $\mathcal A$, $P$, $r$, $\gamma$?\\[0.4em]
+		Now suppose the diagonal action \emph{fails} with probability $\varepsilon$ and leaves you in place.
+		What happens to the state graph?
+	}
+
+	\uncover<2->{%
+		\small
+		$\mathcal S=\{0..m\}\times\{0..n\}$, $\mathcal A=\{\text{del},\text{ins},\text{diag}\}$, deterministic $P$,
+		$r=-\text{cost}$, $\gamma=1$, episodic with the target absorbing. A policy is a path.
+		With failures, $(i,j)$ gets a \alert{self-loop} with probability $\varepsilon$: the graph is no longer a DAG and
+		$v(i,j)$ appears on both sides of its own equation.
+	}
+\end{frame}
+
+\begin{frame}{The Bellman expectation equation}
+	Since $G_t=R_{t+1}+\gamma G_{t+1}$, the tower property and the Markov property give
+	\[
+		v_\pi(s)=\sum_a\pi(a\mid s)\Bigl[r(s,a)+\gamma\sum_{s'}P(s'\mid s,a)\,v_\pi(s')\Bigr].
+	\]
+	In matrix form, with $P_\pi(s,s')=\sum_a\pi(a|s)P(s'|s,a)$ and $r_\pi$ similarly:
+	\[
+		v_\pi=r_\pi+\gamma P_\pi v_\pi\quad\Longleftrightarrow\quad v_\pi=(I-\gamma P_\pi)^{-1}r_\pi.
+	\]
+	$I-\gamma P_\pi$ is invertible since the spectral radius of $\gamma P_\pi$ is $\gamma<1$; equivalently $v_\pi=\sum_k\gamma^kP_\pi^kr_\pi$.
+
+	\seprule
+
+	A linear system of $|\mathcal S|$ equations: the analogue of ``evaluate every state from its predecessors'', but \alert{simultaneous} rather than ordered.
+\end{frame}
+
+\begin{frame}{The Bellman optimality equation}
+	\small
+	\[
+		v^\star(s)=\max_{a}\Bigl[r(s,a)+\gamma\sum_{s'}P(s'\mid s,a)\,v^\star(s')\Bigr]
+	\]
+	\[
+		q^\star(s,a)=r(s,a)+\gamma\sum_{s'}P(s'\mid s,a)\max_{a'}q^\star(s',a').
+	\]
+	Any policy greedy with respect to $v^\star$,
+	$\pi^\star(s)\in\arg\max_a\bigl[r(s,a)+\gamma\sum_{s'}P(s'|s,a)v^\star(s')\bigr]$, is optimal.
+
+	\seprule
+
+	\begin{itemize}
+		\item \textbf{Optimal substructure} is now the \emph{principle of optimality}: a tail of an optimal policy is optimal from the state where the tail starts.
+		\item \textbf{Reconstruction} (step 4) is the $\arg\max$: we recover the policy from values.
+		\item Deterministic transitions and $\gamma=1$ give back $d(v)=\min\{d(u)+w\}$ (with $\max\leftrightarrow\min$).
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Finite horizon: Part 1 verbatim}
+	Horizon $T$, terminal reward $r_T(s)$. State space $(t,s)$ is a \alert{DAG} (time increases).
+	\begin{align*}
+		V_T(s)&=r_T(s) &&\text{base case}\\
+		V_t(s)&=\max_a\Bigl[r_t(s,a)+\sum_{s'}P_t(s'|s,a)\,V_{t+1}(s')\Bigr] &&\text{inductive step}
+	\end{align*}
+	Evaluate for $t=T-1,\dots,0$ (bottom-up); the optimal policy is the argmax (reconstruction).
+	Cost: $\Theta(T\,|\mathcal S|\,|\mathcal A|\,b)$ with branching factor $b\le|\mathcal S|$.
+
+	\seprule
+
+	The only new feature: the dependency structure is an \alert{AND/OR graph}. A max node (we \emph{choose})
+	feeds an expectation node (nature \emph{chooses}). This is backward induction, i.e.\ the recipe of Part~1 with a different semiring-like composition.
+\end{frame}
+
+\begin{frame}{Infinite horizon: the DAG disappears}
+	\small
+	With $T=\infty$ and a stationary problem, the equations for $v^\star$ are cyclic: there is no base case and no topological order.
+	Define the \alert{Bellman operator}
+	\[
+		(\Bell V)(s)=\max_a\Bigl[r(s,a)+\gamma\sum_{s'}P(s'|s,a)V(s')\Bigr].
+	\]
+	\begin{theorem}
+		$\Bell$ is a $\gamma$-contraction in $\supnorm\cdot$. Hence $v^\star$ is its unique fixed point and
+		$\supnorm{\Bell^kV_0-v^\star}\le\gamma^k\supnorm{V_0-v^\star}$ for every $V_0$.
+	\end{theorem}
+	\begin{proof}
+		Use $|\max_af(a)-\max_ag(a)|\le\max_a|f(a)-g(a)|$:
+		\[
+			|(\Bell V)(s)-(\Bell U)(s)|\le\gamma\max_a\sum_{s'}P(s'|s,a)\,|V(s')-U(s')|\le\gamma\supnorm{V-U}.\qedhere
+		\]
+	\end{proof}
+\end{frame}
+
+\begin{frame}{What replaces each ingredient?}
+	\small
+	\audience{Discuss}{%
+		What is the counterpart, in the cyclic setting, of each element of the DP recipe?
+	}
+
+	\footnotesize
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{@{}p{0.17\textwidth}p{0.23\textwidth}p{0.5\textwidth}@{}}
+		\toprule
+		Recipe element & DAG (Part 1) & Cyclic MDP\\
+		\midrule
+		Base case & $d(s)=0$ & \uncover<2->{none: \alert{contraction} gives a unique fixed point; any $V_0$}\\
+		Evaluation order & topological order & \uncover<2->{sweeps $V_{k+1}=\Bell V_k$; convergence only in the limit}\\
+		Complexity & $|V|\times$ cost per state & \uncover<2->{(cost of a sweep) $\times\;O\bigl(\tfrac{\log(1/\epsilon)}{1-\gamma}\bigr)$ sweeps}\\
+		Reconstruction & argmin predecessor & \uncover<2->{greedy policy w.r.t.\ $V$; loss $\le\tfrac{2\gamma}{1-\gamma}\supnorm{V-v^\star}$}\\
+		\bottomrule
+	\end{tabular}
+\end{frame}
+
+\begin{frame}{Value iteration}
+	\small
+	\[
+		V_{k+1}=\Bell V_k,\qquad V_0\text{ arbitrary}.
+	\]
+	One sweep costs $\Theta(|\mathcal S|\,|\mathcal A|\,b)$. A computable error certificate follows from the contraction property:
+	\[
+		\supnorm{V_{k+1}-v^\star}\le\tfrac{\gamma}{1-\gamma}\supnorm{V_{k+1}-V_k}.
+	\]
+	\begin{proof}
+		$\supnorm{V_{k+1}-v^\star}\le\supnorm{V_{k+1}-\Bell V_{k+1}}+\supnorm{\Bell V_{k+1}-\Bell v^\star}
+		\le\gamma\supnorm{V_k-V_{k+1}}+\gamma\supnorm{V_{k+1}-v^\star}$.
+	\end{proof}
+	For the greedy policy $\pi_V$ one has $\supnorm{v_{\pi_V}-v^\star}\le\tfrac{2}{1-\gamma}\supnorm{\Bell V-V}$.
+
+	\seprule
+
+	\textbf{Observation:} the \emph{policy} stabilises long before the \emph{values} do.
+\end{frame}
+
+\begin{frame}{A worked example}
+	$\gamma=0.9$. State $s_1$: action $a$: $r=1$, stay in $s_1$; action $b$: $r=0$, go to $s_2$ w.p.\ $0.8$, else stay.
+	State $s_2$: action $c$: $r=2$, stay; action $d$: $r=3$, go to $s_1$.
+
+	\begin{columns}[T,onlytextwidth]
+		\column{0.5\textwidth}
+		\small
+		\renewcommand{\arraystretch}{1.1}
+		\begin{tabular}{@{}cccc@{}}
+			\toprule
+			$k$ & $V_k(s_1)$ & $V_k(s_2)$ & greedy at $s_1$\\
+			\midrule
+			0 & 0 & 0 & $a$\\
+			1 & 1 & 3 & \only<1>{?}\only<2->{$b$}\\
+			2 & 2.340 & 4.700 & $b$\\
+			3 & 3.805 & 6.230 & $b$\\
+			4 & 5.171 & 7.607 & $b$\\
+			$\infty$ & 17.561 & 20 & $b$\\
+			\bottomrule
+		\end{tabular}
+
+		\column{0.46\textwidth}
+		\audience{Predict}{%
+			From $V_1$, which action does the greedy policy choose at $s_1$?
+		}
+		\uncover<2->{\small $q(s_1,a)=1+0.9\cdot1=1.9$,\\ $q(s_1,b)=0.9(0.8\cdot3+0.2\cdot1)=2.34$.}
+	\end{columns}
+\end{frame}
+
+\begin{frame}{Policy iteration}
+	\small
+	Alternate \alert{evaluation} (solve $v_\pi=(I-\gamma P_\pi)^{-1}r_\pi$) and \alert{improvement}
+	($\pi'(s)\in\arg\max_a q_\pi(s,a)$).
+
+	\begin{theorem}[policy improvement]
+		$v_{\pi'}\ge v_\pi$ pointwise, strictly somewhere unless $\pi$ is optimal.
+	\end{theorem}
+	\begin{proof}[Sketch]
+		$\Bell_{\pi'}v_\pi=\Bell v_\pi\ge v_\pi$ and $\Bell_{\pi'}$ is monotone, so
+		$v_\pi\le\Bell_{\pi'}v_\pi\le\Bell_{\pi'}^2v_\pi\le\dots\to v_{\pi'}$.
+	\end{proof}
+	Finitely many policies and strict improvement: termination; in practice only a handful of iterations.
+	Ye (2011): strongly polynomial for fixed $\gamma$.
+
+	\seprule
+
+	In the example, starting from $(a,c)$: $v=(10,20)\Rightarrow$ improve to $(b,c)$ $\Rightarrow v=(17.561,20)$, stable after \alert{two} iterations.
+\end{frame}
+
+\begin{frame}{Asynchronous dynamic programming}
+	\small
+	Value iteration is \emph{synchronous}: $V_{k+1}$ is computed entirely from $V_k$ (Jacobi), and every sweep visits every state.
+
+	\textbf{Assumptions we are about to drop:}
+	\begin{enumerate}
+		\item a \alert{global sweep} that touches all $|\mathcal S|$ states each iteration;
+		\item a \alert{fixed schedule} and a barrier between iterations (a global clock for distributed computation);
+		\item all states are equally worth updating.
+	\end{enumerate}
+
+	\seprule
+
+	\textbf{Asynchronous DP.} At each step choose any state $s_t$ and set
+	\[
+		V(s_t)\leftarrow(\Bell V)(s_t),
+	\]
+	using whatever values of the other states are currently available. Order, frequency and even staleness of reads are free.
+\end{frame}
+
+\begin{frame}{Schedules for asynchronous updates}
+	\small
+	\begin{itemize}
+		\item \textbf{In place (Gauss--Seidel):} use updated values immediately; typically needs fewer sweeps.
+		\item \textbf{Prioritised sweeping:} update the state with the largest Bellman error
+		$|(\Bell V)(s)-V(s)|$; when $V(s')$ changes, enqueue its predecessors (Moore--Atkeson 1993).
+		\item \textbf{Real-time DP (RTDP):} update only along trajectories of the greedy policy from the start states
+		(Barto--Bradtke--Singh 1995). With an optimistic initialisation it converges on the states reachable under optimal policies
+		and \alert{never touches the rest}.
+		\item \textbf{Heuristic search:} A*/LAO* are RTDP-like schedules on AND/OR graphs.
+	\end{itemize}
+
+	\seprule
+
+	\alert{Dijkstra is asynchronous value iteration} with the schedule ``finalise the state with the smallest tentative value'':
+	each state is updated once. Bellman--Ford is the synchronous schedule.
+\end{frame}
+
+\begin{frame}{Choose your schedule}
+	\begin{columns}[T,onlytextwidth]
+		\column{0.45\textwidth}
+		\centering
+		\begin{tikzpicture}[x=1.4cm,y=1cm]
+			\node[st,minimum size=6mm,font=\scriptsize] (a) at (0,0) {$a$};
+			\node[st,minimum size=6mm,font=\scriptsize] (b) at (1.4,0) {$b$};
+			\node[st,minimum size=6mm,font=\scriptsize] (c) at (2.8,0) {$c$};
+			\node[st,minimum size=6mm,font=\scriptsize] (g) at (4.2,0) {$g$};
+			\draw[e] (a) -- node[above,font=\tiny]{2} (b);
+			\draw[e] (b) -- node[above,font=\tiny]{3} (c);
+			\draw[e] (c) -- node[above,font=\tiny]{1} (g);
+			\draw[e] (a) to[bend left=45] node[above,font=\tiny]{7} (c);
+		\end{tikzpicture}
+
+		\small
+		$V(g)=0$, all other $V=\infty$; update $V(s)\leftarrow\min_{s\to s'}\{w+V(s')\}$.
+
+		\column{0.52\textwidth}
+		\audience{Predict}{%
+			\begin{enumerate}
+				\item How many synchronous sweeps until $V(a)$ is final?
+				\item Which update order finishes in one pass?
+			\end{enumerate}
+		}
+	\end{columns}
+
+	\uncover<2->{%
+		\small
+		(1) Three sweeps: information travels one edge per sweep. (2) $c,b,a$: a reverse topological order.
+		The bottom-up evaluation of Part~1 is the \alert{best possible asynchronous schedule} when the graph is a DAG;
+		for cyclic graphs, Dijkstra's priority queue computes such an order on the fly.%
+	}
+\end{frame}
+
+\begin{frame}{Why asynchronous updates converge}
+	\small
+	\begin{theorem}[Bertsekas 1982; Bertsekas--Tsitsiklis 1989]
+		Let $\Bell$ be a $\gamma$-contraction in $\supnorm\cdot$. If each coordinate is updated infinitely often, and
+		stale information is eventually flushed, then $V_t\to v^\star$ for any initial $V_0$.
+	\end{theorem}
+	\begin{proof}[Box argument]
+		Let $D=\supnorm{V_0-v^\star}$ and $B_k=\{V:\supnorm{V-v^\star}\le\gamma^kD\}$.
+		Let $t_k$ be a time after which every coordinate has been updated at least once using only information from
+		after $t_{k-1}$. Claim: $V_t\in B_k$ for $t\ge t_k$.
+		Induction: an update of coordinate $s$ reads a vector in $B_{k-1}$, so
+		$|V_{t+1}(s)-v^\star(s)|=|(\Bell V)(s)-(\Bell v^\star)(s)|\le\gamma\cdot\gamma^{k-1}D$, and further updates
+		keep $s$ within the box.
+	\end{proof}
+	The per-coordinate contraction is all we need: no global clock, order, or synchronisation.
+\end{frame}
+
+\begin{frame}{From asynchronous DP to learning}
+	\small
+	Replace the expectation over $P$ by a \emph{sample} $(s,a,r,s')$ and take a step of size $\alpha_t$:
+	\[
+		Q(s,a)\leftarrow Q(s,a)+\alpha_t\Bigl[r+\gamma\max_{a'}Q(s',a')-Q(s,a)\Bigr].
+	\]
+	This is \alert{Q-learning}: asynchronous value iteration on $q^\star$ with stochastic approximation (Watkins--Dayan 1992; Tsitsiklis 1994).
+	It converges when every pair $(s,a)$ is visited infinitely often and $\sum\alpha_t=\infty$, $\sum\alpha_t^2<\infty$.
+
+	\seprule
+
+	\begin{tabularx}{\textwidth}{@{}lX@{}}
+		\toprule
+		Carries over & Fixed point of the Bellman operator; contraction; state sufficiency; greedy extraction of the policy\\
+		Changes & Model $P$ unknown (sampling replaces expectation); updates asynchronous by construction\\
+		Breaks & With function approximation the composed operator need not be a contraction (Baird's counterexample)\\
+		\bottomrule
+	\end{tabularx}
+\end{frame}
+
+\begin{frame}{Discussion}
+	\audience{Discuss}{%
+		A state space with $10^{20}$ states (a board game, a robot with continuous sensors).
+		\begin{enumerate}
+			\item Which of the Part~1 requirements do you give up first?
+			\item What replaces the table $V:\mathcal S\to\mathbb R$?
+			\item Which guarantee from the contraction proof do you lose?
+		\end{enumerate}
+	}
+\end{frame}

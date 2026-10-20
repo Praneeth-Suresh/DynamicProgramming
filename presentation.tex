@@ -38,26 +38,36 @@
 %\usepackage{biblatex}
 %\bibliography{literature.bib}
 
+\usepackage{appendixnumberbeamer}
 
 \input{setup-colors.tex}
 \input{setup-beamer.tex}
 \input{setup-math.tex}
 \input{setup-plots.tex}
+\input{setup-workshop.tex}
 
 
-\title{Title of your Presentation}
-\author{Author 1\inst{1}, Author 2\inst{1}, and Author 3\inst{2}}
-\institute[]{%
-	\inst{1} Institute for Science, University Name, Country\\
-	\inst{2} Department of Science, Different University, Country
-}
-\date{Date or Conference Name}
+\title{Beyond Dynamic Programming}
+\subtitle{State spaces, speed-ups, and Bellman's equations}
+\author{Your Name}
+\institute[]{Your Affiliation}
+\date{Workshop}
 
-\titlegraphic{\includegraphics[height=.17\textheight]{logo.png}}
+% The template ships a placeholder logo; enable once you have a real one:
+%\titlegraphic{\includegraphics[height=.17\textheight]{logo.png}}
 
 
 \begin{document}
 \maketitle
 
-\input{example-content.tex}
+\begin{frame}{Outline}
+	\setbeamertemplate{section in toc}[sections numbered]
+	\tableofcontents[hideallsubsections]
+\end{frame}
+
+\input{content-01-foundations.tex}
+\input{content-02-case-studies.tex}
+\input{content-03-going-faster.tex}
+\input{content-04-beyond.tex}
+\input{content-05-closing.tex}
 \end{document}

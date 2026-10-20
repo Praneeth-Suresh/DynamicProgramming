@@ -1,0 +1,261 @@
+\section{Going Faster}
+
+\begin{frame}{Where does the time go?}
+	Time $\approx\sum_v \text{indeg}(v)=|E|$. Two levers, both about the \emph{shape} of the DAG, not its meaning:
+
+	\begin{enumerate}
+		\item[\alert{I}] \textbf{Change the recurrence.} Algebra on the transition turns
+		``minimum over all predecessors'' into a structured query (a data-structure operation).
+		\item[\alert{II}] \textbf{Change the compute order.} Refine the DAG with intermediate states so
+		that every state has $O(1)$ in-edges, computing the same values.
+	\end{enumerate}
+
+	\seprule
+
+	We illustrate (I) with the \textbf{convex hull trick} and (II) with a \textbf{bitmask profile DP}.
+\end{frame}
+
+\begin{frame}{Lever I: a problem with a quadratic transition}
+	\textbf{Batched jobs.} Jobs $1,\dots,n$ must be processed in order; job $l$ has size $c_l\ge0$ and $S_i=\sum_{l\le i}c_l$.
+	Partition the sequence into consecutive batches. A batch of total size $s$ costs $M+s^2$ (set-up plus a quadratic penalty).
+
+	Let $\mathrm{dp}(i)$ be the optimal cost for the first $i$ jobs:
+	\[
+		\mathrm{dp}(0)=0,\qquad
+		\mathrm{dp}(i)=\min_{0\le j<i}\Bigl\{\,\mathrm{dp}(j)+(S_i-S_j)^2+M\,\Bigr\}.
+	\]
+
+	$n$ states, $\Theta(n)$ predecessors each: $\Theta(n^2)$. For $n=10^6$ that is hopeless.
+
+	\audience{Discuss}{%
+		Expand the square. \textbf{Which terms couple $i$ and $j$?}
+		What does that suggest about the inner minimisation?
+	}
+\end{frame}
+
+\begin{frame}{Rewriting the recurrence}
+	\small
+	\[
+		\mathrm{dp}(i)=S_i^2+M+\min_{j<i}\Bigl\{\underbrace{(-2S_j)}_{m_j}\cdot S_i+\underbrace{\mathrm{dp}(j)+S_j^2}_{b_j}\Bigr\}.
+	\]
+	Only the cross term $-2S_iS_j$ couples $i$ and $j$. Everything else is a function of $i$ alone or of $j$ alone.
+
+	\seprule
+
+	Define the line $\ell_j(x)=m_jx+b_j$. Then
+	\[
+		\boxed{\;\mathrm{dp}(i)=S_i^2+M+\min_{j<i}\ell_j(S_i)\;}
+	\]
+	The inner term is the \alert{lower envelope} of the lines $\ell_0,\dots,\ell_{i-1}$ evaluated at $S_i$.
+	The line $\ell_i$ becomes available only after $\mathrm{dp}(i)$ is known (an \emph{online} insertion).
+\end{frame}
+
+\begin{frame}{The lower envelope}
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[
+			betterplot,
+			width=0.62\textwidth, height=5.6cm,
+			xmin=0,xmax=5,ymin=-3.5,ymax=8,
+			xlabel={$x$}, ylabel={$\ell_j(x)$},
+			legend pos=south west, legend style={font=\scriptsize},
+			cycle list name=lineplot cycle,
+			]
+			\addplot[domain=0:5,thick,plot0,no marks] {6};
+			\addplot[domain=0:5,thick,plot1,no marks,dashed] {7-x};
+			\addplot[domain=0:5,thick,plot2,no marks] {6.9-1.5*x};
+			\addplot[domain=0:5,thick,plot3,no marks] {12-3*x};
+			\addplot[domain=0:0.6,very thick,accent,no marks] {6};
+			\addplot[domain=0.6:3.4,very thick,accent,no marks] {6.9-1.5*x};
+			\addplot[domain=3.4:5,very thick,accent,no marks] {12-3*x};
+			\legend{$\ell_0$,$\ell_1$ (redundant),$\ell_2$,$\ell_3$}
+		\end{axis}
+	\end{tikzpicture}
+
+	\small Slopes decrease with insertion order ($m_j=-2S_j$, $S_j$ non-decreasing), so each new line
+	is the best one for \emph{large} $x$. The dashed line never attains the minimum and may be discarded.
+\end{frame}
+
+\begin{frame}{The monotone convex hull trick}
+	\small
+	Keep the envelope as a deque $Q$ of lines in insertion order; queries $S_i$ are non-decreasing.
+
+	\begin{enumerate}
+		\item \textbf{Query.} While $|Q|\ge2$ and $\ell_{Q_2}(S_i)\le\ell_{Q_1}(S_i)$, pop the front.
+		Then $\mathrm{dp}(i)=S_i^2+M+\ell_{Q_1}(S_i)$.
+		\item \textbf{Insert} $\ell_i$. While $|Q|\ge2$ and the last line $\ell_2$ (predecessor $\ell_1$; slopes $m_1>m_2>m_i$) is redundant, pop the back:
+		\[
+			\ell_2\text{ redundant}\iff (b_i-b_1)(m_1-m_2)\le(b_2-b_1)(m_1-m_i),
+		\]
+		i.e.\ $\ell_1,\ell_i$ intersect left of $\ell_1,\ell_2$.
+	\end{enumerate}
+
+	\seprule
+
+	Each line is pushed once and popped at most once: \alert{amortised $O(1)$ per state, $\Theta(n)$ in total}.
+	The front can be discarded because later queries are larger and later lines have smaller slopes.
+\end{frame}
+
+\begin{frame}{Robustness of the trick}
+	\small
+	\audience{Vote}{%
+		The data are \textbf{not monotone}. Choose the data structure.
+		(a)~Slopes inserted in decreasing order, \emph{arbitrary} query points.
+		(b)~\emph{Arbitrary} slopes (e.g.\ some $c_l<0$), arbitrary queries, online.
+	}
+
+	\uncover<2->{%
+		\begin{enumerate}
+			\item[(a)] Keep the hull as an array and \alert{binary-search} the query: $O(n\log n)$ total.
+			\item[(b)] A \alert{Li Chao tree} over the query domain (or a dynamic hull): $O(\log C)$ per insertion and query
+			($C$ = size of the query domain; compress coordinates offline if needed).
+		\end{enumerate}
+		Implementation note: the redundancy test multiplies differences of intercepts and slopes; for $S\sim10^{9}$ the products need $128$-bit arithmetic.
+	}
+\end{frame}
+
+\begin{frame}{What structure was exploited?}
+	\small
+	The trick applies whenever the transition separates as
+	$\mathrm{dp}(i)=\alpha_i+\min_{j<i}\{\beta_j+\gamma_i\,\delta_j\}$. Other structure in $\mathrm{cost}(j,i)$ gives other accelerations:
+
+	\footnotesize
+	\begin{center}
+		\renewcommand{\arraystretch}{1.15}
+		\begin{tabular}{@{}p{0.31\textwidth}p{0.4\textwidth}p{0.18\textwidth}@{}}
+			\toprule
+			Structure of $\mathrm{cost}(j,i)$ & Technique & Gain\\
+			\midrule
+			Separable (inner product) & Convex hull trick / Li Chao tree & $n^2\to n,\;n\log n$\\
+			Monge, 1D/1D online & Monotone optimum; SMAWK, LARSCH & $n^2\to n\log n$ or $n$\\
+			Monge, $k$ layers & Divide-and-conquer optimisation & $kn^2\to kn\log n$\\
+			Convex in number of layers $k$ & Lagrangian relaxation (``Aliens trick'') & removes factor $k$\\
+			Interval DP, monotone optimum & Knuth--Yao & $n^3\to n^2$\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+\end{frame}
+
+\begin{frame}{Lever II: tilings and bitmask DP}
+	\small
+	\textbf{Floorplanning.} Count the tilings of an $n\times m$ board (some cells may be blocked) by $1\times2$ dominoes, with $m$ small ($\le 16$) and $n$ large.
+
+	\textbf{Row-by-row.} Let $G_r(M')$ count partial tilings in which rows $<r$ are fully covered and
+	$M'\subseteq\{0,\dots,m-1\}$ are exactly the cells of row $r$ covered by vertical dominoes from row $r-1$.
+	\[
+		G_0(\emptyset)=1,\qquad
+		G_{r+1}(M')=\sum_{M\;\text{compatible with}\;M'}G_r(M),\qquad\text{answer }G_n(\emptyset).
+	\]
+	$M$ and $M'$ are compatible iff $M\cap M'=\emptyset$ and the cells of the row outside $M\cup M'$ split into
+	runs of even length (to be tiled by horizontal dominoes).
+
+	\seprule
+
+	$2^m$ states per row. Compatible pairs: up to $3^m$. Time $\Theta(n\,3^m)$.
+\end{frame}
+
+\begin{frame}{The edge count is the bottleneck}
+	\audience{Discuss}{%
+		There are only $2^m$ states per row, but $3^m$ edges between consecutive rows.
+		Can the \textbf{same} counts be computed with fewer edges?
+		\emph{Hint:} what if we decide one cell at a time?
+	}
+
+	\uncover<2->{%
+		\small
+		Insert intermediate states between rows: process cells in row-major order and keep, as state, the
+		\alert{profile} of the next $m$ cells (already covered or not). Each cell has $O(1)$ choices: skip, place a
+		vertical domino, place a horizontal domino. Same sums, regrouped; edges per state drop from $2^m$ to $O(1)$.
+	}
+\end{frame}
+
+\begin{frame}{Broken profile DP}
+	\small
+	Number cells $t=rm+c$ in row-major order. Let $F_t(M)$, $M\in\{0,1\}^m$, count partial tilings in which cells $<t$ are
+	covered, and bit $k$ of $M$ says whether cell $t+k$ is already covered.
+	\[
+		F_0(0)=1,\qquad \text{answer }F_{nm}(0).
+	\]
+	From $F_t(M)$, with cell $t=(r,c)$:
+	\begin{align*}
+		M_0=1:\;& F_{t+1}\bigl(M\gg1\bigr)\mathrel{+}=F_t(M)\\
+		M_0=0:\;& F_{t+1}\bigl((M\gg1)\,|\,2^{m-1}\bigr)\mathrel{+}=F_t(M) && \text{vertical, if } r+1<n\\
+		M_0=M_1=0:\;& F_{t+1}\bigl((M\gg1)\,|\,1\bigr)\mathrel{+}=F_t(M) && \text{horizontal, if } c+1<m
+	\end{align*}
+	Blocked cells: forbid dominoes that would cover them and let a blocked cell pass through unchanged.
+
+	\seprule
+
+	States: $nm\,2^m$. In-edges: $\le 3$. Time $\Theta(nm\,2^m)$ versus $\Theta(n\,3^m)$.
+\end{frame}
+
+\begin{frame}{Same values, different DAG}
+	\centering
+	\begin{tikzpicture}[x=1.4cm,y=0.65cm]
+		% left: dense layer to layer
+		\node[font=\scriptsize] at (0.5,2.1) {row-by-row};
+		\foreach \a in {0,1,2,3}{\node[st] (a\a) at (0,-\a+1.5) {};}
+		\foreach \b in {0,1,2,3}{\node[st] (b\b) at (1,-\b+1.5) {};}
+		\foreach \a in {0,1,2,3}{\foreach \b in {0,1,2,3}{\draw[e] (a\a) -- (b\b);}}
+		% right: chain of sparse layers
+		\node[font=\scriptsize] at (5,2.1) {broken profile};
+		\foreach \k in {0,1,2,3}{
+			\foreach \a in {0,1,2,3}{\node[st] (c\k\a) at (3.4+0.9*\k,-\a+1.5) {};}
+		}
+		\foreach \k/\kk in {0/1,1/2,2/3}{
+			\foreach \a/\b in {0/0,0/1,1/1,1/2,2/2,2/3,3/3,3/0}{\draw[e] (c\k\a) -- (c\kk\b);}
+		}
+	\end{tikzpicture}
+
+	\vspace{0.5em}
+	\begin{center}
+		\small
+		\begin{tabular}{@{}lrr@{}}
+			\toprule
+			$m=16$, per row & states & edges\\
+			\midrule
+			row-by-row & $65{,}536$ & $43{,}046{,}721$\\
+			broken profile & $1{,}048{,}576$ & $\le 3{,}145{,}728$\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	The state count \emph{grows} (by a factor $m$) while the edge count collapses (by a factor $\approx14$).
+	Cost is edges, not states.
+\end{frame}
+
+\begin{frame}{Predict}
+	\audience{Predict}{%
+		How many domino tilings does the $8\times8$ board have?\\[0.3em]
+		(a)~$\sim10^4$ \quad (b)~$\sim10^5$ \quad (c)~$\sim10^7$ \quad (d)~$\sim10^9$ \\[0.6em]
+		And the board with two \textbf{opposite corners} removed?
+	}
+
+	\uncover<2->{%
+		\small
+		The DP gives $12{,}988{,}816=(4\cdot901)^2$ tilings of the $8\times8$ board and $\mathbf{0}$ for the mutilated board:
+		a domino covers one black and one white cell, and opposite corners have the same colour.
+		The DP is an \emph{exact} certificate of the colouring argument.
+		(Aside: for planar grids Kasteleyn's Pfaffian method counts tilings in polynomial time. DP is exponential in $m$
+		but handles non-planar constraints and arbitrary local rules.)
+	}
+\end{frame}
+
+\begin{frame}{Part 3 in one slide}
+	\begin{center}
+		\begin{tabularx}{\textwidth}{@{}lXX@{}}
+			\toprule
+			& I. Change the recurrence & II. Change the order\\
+			\midrule
+			Idea & separate $i$ from $j$; reduce to a query & refine the DAG; fewer in-edges\\
+			Example & convex hull trick & broken profile\\
+			Gain & $n^2\to n$ & $3^m\to m\,2^m$ per row\\
+			Price & needs algebraic/geometric structure & more (but cheaper) states\\
+			\bottomrule
+		\end{tabularx}
+	\end{center}
+
+	\seprule
+
+	Both are statements about the DAG: \alert{time $=$ number of edges}.
+	In both cases the recurrence's \emph{meaning} did not change.
+\end{frame}
