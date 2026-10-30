@@ -25,9 +25,11 @@ candidate solutions before the answer is revealed.
 | `setup-*.tex` | Theme, colour, maths, and plot setup inherited from the template. |
 | `WORKSHOP_GUIDE.md` | Presenter's guide: how each interaction type runs, and a per-slide script with expected answers. |
 
-The deck is roughly 71 numbered slides plus section dividers and a short appendix (references
-and a backup slide). Several slides use overlays, so the rendered PDF has more pages than there
-are numbered slides. Suggested running time is about 2.5 to 3 hours with discussion.
+The deck has 118 numbered slides plus section dividers and a short appendix (references
+and a backup slide). Each slide is a single page: questions sit on their own slides with the
+answer on the next one, and spoken material lives in `WORKSHOP_GUIDE.md`. The earlier, denser
+version of the deck is kept as `presentation_audience.pdf`. Suggested running time is about
+2.5 to 3 hours with discussion.
 
 
 # Structure of the workshop
@@ -90,8 +92,8 @@ docker run --rm -v "$PWD":/work -w /work texlive/texlive:latest \
   \definecolor{bgcolorAlt}{HTML}{ECF1FC}% title and box background
   \definecolor{fgcolor}{HTML}{222244}   % text colour
   ```
-- **Audience boxes.** Each engagement element is an `\audience{<type>}{<prompt>}` box defined in
-  `setup-workshop.tex`. Add or move them to keep interaction frequent.
+- **Question boxes.** Each question for the room is an `\audience[<title>]{<question>}` box defined
+  in `setup-workshop.tex`, on a slide of its own. The title is optional and should name the topic.
 
 
 # Notes

@@ -1,12 +1,17 @@
 \section{Other Places, and What We Learned}
 
 \begin{frame}{One DAG, many semirings}
-	The recurrence $d(v)=\bigoplus_{u\to v}d(u)\otimes w(u,v)$ is a path problem over a semiring $(K,\oplus,\otimes)$.
+	The recurrence
+	\[
+		d(v)=\bigoplus_{u\to v}d(u)\otimes w(u,v)
+	\]
+	is a path problem over a semiring $(K,\oplus,\otimes)$.
 	Changing the semiring changes the problem, not the algorithm.
+\end{frame}
 
-	\small
+\begin{frame}{Semirings and what they compute}
 	\begin{center}
-		\renewcommand{\arraystretch}{1.15}
+		\renewcommand{\arraystretch}{1.25}
 		\begin{tabularx}{\textwidth}{@{}llX@{}}
 			\toprule
 			$(\oplus,\otimes)$ & Computes & Examples\\
@@ -23,42 +28,48 @@
 \end{frame}
 
 \begin{frame}{Name the semiring}
-	\audience{Vote}{%
-		Which semiring (if any) governs each recurrence?
+	\audience[Which semiring, if any?]{%
 		\begin{enumerate}
 			\item[(a)] $N(i)=\sum_{j<i}N(j)\,[\,\text{edge }j\to i\,]$ (number of paths)
 			\item[(b)] $f(i,j)=\min_p\max\{f(p,j-1),S_i-S_p\}$
 			\item[(c)] $V_t(s)=\max_a\bigl[r+\sum_{s'}P(s'|s,a)V_{t+1}(s')\bigr]$
 		\end{enumerate}
 	}
+\end{frame}
 
-	\uncover<2->{%
-		\small
-		(a) $(+,\times)$. (b) $(\min,\max)$. (c) \alert{None}: it alternates $\max$ over actions with an
-		expectation over successors, so it is a path problem on an AND/OR graph (a hypergraph). For a \emph{fixed} policy
-		it collapses to $(+,\times)$ and becomes linear: $v_\pi=r_\pi+\gamma P_\pi v_\pi$.
-	}
+\begin{frame}{Name the semiring: answers}
+	\begin{enumerate}
+		\item[(a)] $(+,\times)$.
+		\item[(b)] $(\min,\max)$.
+		\item[(c)] \alert{None}: $\max$ over actions alternates with an expectation over successors.
+		It is a path problem on an AND/OR graph.
+	\end{enumerate}
+
+	\seprule
+
+	For a \emph{fixed} policy, (c) collapses to $(+,\times)$ and becomes linear: $v_\pi=r_\pi+\gamma P_\pi v_\pi$.
 \end{frame}
 
 \begin{frame}{Linear optimisation: a staircase LP}
-	\small
 	\textbf{Production planning.} Periods $t=1,\dots,T$; demand $d_t$, unit production cost $c_t$, capacity $u$,
 	unit holding cost $h$, inventory $s_t$ with $s_1$ given.
 	\begin{align*}
 		\min\quad & \sum_{t=1}^{T}\bigl(c_tx_t+h\,s_{t+1}\bigr)\\
 		\text{s.t.}\quad & s_{t+1}=s_t+x_t-d_t, \qquad 0\le x_t\le u, \qquad s_{t+1}\ge0.
 	\end{align*}
-	This is an LP in $2T$ variables. Constraint $t$ involves only $(s_t,x_t,s_{t+1})$: a \alert{staircase} structure.
-	Inventory $s_t$ is a sufficient state, and the LP is a path in a (continuous) state space:
+	Constraint $t$ involves only $(s_t,x_t,s_{t+1})$: a \alert{staircase} structure.
+\end{frame}
+
+\begin{frame}{The staircase LP as a DP}
+	Inventory $s_t$ is a sufficient state:
 	\[
 		V_{T+1}\equiv0,\qquad
 		V_t(s)=\min_{\substack{0\le x\le u\\ s+x-d_t\ge0}}\Bigl\{c_tx+h(s+x-d_t)+V_{t+1}(s+x-d_t)\Bigr\}.
 	\]
-	The state is real-valued: no table. What does $V_t$ look like?
+	The state is real-valued, so there is no table.
 \end{frame}
 
 \begin{frame}{The value functions are piecewise linear and convex}
-	\small
 	\begin{columns}[T,onlytextwidth]
 		\column{0.52\textwidth}
 		\begin{tikzpicture}
@@ -76,96 +87,91 @@
 		\end{tikzpicture}
 
 		\column{0.44\textwidth}
-		\small
 		$T=3$, $d=(2,3,2)$, $c=(1,3,1)$, $u=3$, $h=1$.
 
 		\begin{theorem}
 			Each $V_t$ is convex and piecewise linear on its domain.
 		\end{theorem}
-		\textit{Proof.} $V_t(s)$ is the optimal value of an LP whose right-hand side depends affinely on $s$;
-		partial minimisation of a jointly convex polyhedral function over a polyhedron is convex and polyhedral.
-		By induction, $V_{t+1}$ has the same form.
 	\end{columns}
-
-	\seprule
-
-	\small DP is exact here without discretisation: represent $V_t$ by its breakpoints or its supporting lines (\emph{cuts}).
 \end{frame}
 
 \begin{frame}{Reading the slopes}
-	\audience{Predict}{%
+	\audience[Value of one extra unit]{%
 		$V_2$ has slope $-3$ on $[0,3]$, slope $0$ on $[3,5]$ and slope $+2$ on $[5,7]$.
 		Explain each slope in terms of what one extra unit of inventory does.
 	}
+\end{frame}
 
-	\uncover<2->{%
-		\small
-		\begin{itemize}
-			\item $[0,3]$: one extra unit avoids producing a unit at $c_2=3$ in period $2$: saving $3$.
-			\item $[3,5]$: demand of period $2$ is covered; the extra unit then replaces production at $c_3=1$ in period $3$ but costs holding $h=1$: net $0$.
-			\item $[5,7]$: all demand is covered; the extra unit is just held through periods $2$ and $3$: cost $2h=2$.
-		\end{itemize}
-		The slopes of $V_t$ are the LP \alert{dual variables} (shadow prices). Stochastic dual dynamic programming (SDDP)
-		builds $V_t$ from exactly these supporting lines.
-	}
+\begin{frame}{Reading the slopes: answer}
+	\begin{itemize}
+		\item $[0,3]$: avoids producing a unit at $c_2=3$ in period $2$: saving $3$.
+		\item $[3,5]$: replaces production at $c_3=1$ in period $3$, but costs holding $h=1$: net $0$.
+		\item $[5,7]$: just held through periods $2$ and $3$: cost $2h=2$.
+	\end{itemize}
+
+	\seprule
+
+	The slopes of $V_t$ are the LP \alert{dual variables} (shadow prices).
 \end{frame}
 
 \begin{frame}{The other direction: MDPs as linear programs}
-	\small
 	For $\mu>0$ consider
 	\[
 		\min_v\;\sum_s\mu(s)v(s)\quad\text{s.t.}\quad v(s)\ge r(s,a)+\gamma\sum_{s'}P(s'|s,a)v(s')\quad\forall s,a.
 	\]
-	\textbf{Claim:} $v^\star$ is the unique optimum. Feasibility means $v\ge\Bell v$; by monotonicity of $\Bell$,
-	$v\ge\Bell^kv\to v^\star$. So every feasible $v$ dominates $v^\star$, which is itself feasible.
+	\textbf{Claim:} $v^\star$ is the unique optimum.
 
-	\seprule
+	\vspace{0.5em}
+	Feasibility means $v\ge\Bell v$; by monotonicity of $\Bell$,
+	$v\ge\Bell^kv\to v^\star$. Every feasible $v$ dominates $v^\star$, which is itself feasible.
+\end{frame}
 
+\begin{frame}{The dual: occupancy measures}
 	The dual variables $x(s,a)\ge0$ are \alert{discounted state-action occupancy measures}:
 	\[
 		\max_x\sum_{s,a}r(s,a)x(s,a)\quad\text{s.t.}\quad\sum_ax(s',a)-\gamma\sum_{s,a}P(s'|s,a)x(s,a)=\mu(s').
 	\]
-	Complementary slackness says $x(s,a)>0$ only if $a$ attains the maximum in the Bellman optimality equation.
+
+	\seprule
+
 	\textbf{Bellman optimality $=$ LP optimality conditions.}
 \end{frame}
 
 \begin{frame}{Dynamic programming elsewhere}
 	\small
 	\begin{center}
-		\renewcommand{\arraystretch}{1.15}
+		\renewcommand{\arraystretch}{1.25}
 		\begin{tabularx}{\textwidth}{@{}lX@{}}
 			\toprule
 			Area & Dynamic programming in disguise\\
 			\midrule
 			Computational biology & Needleman--Wunsch / Smith--Waterman alignment; RNA folding (Nussinov, Zuker)\\
 			Language and speech & Viterbi decoding; CYK; inside--outside algorithm\\
-			Probabilistic inference & Variable elimination / junction trees: DP over a tree decomposition of the model\\
+			Probabilistic inference & Variable elimination / junction trees\\
 			Optimal control & LQR: $V_t(x)=x^\top P_tx$ with the Riccati recursion for $P_t$\\
-			Operations research & Multi-stage (stochastic) LPs and SDDP; DP-based algorithms for integer programs with small coefficients\\
-			Economics & Recursive formulations of consumption and growth (Bellman equations over continuous states)\\
+			Operations research & Multi-stage (stochastic) LPs and SDDP\\
+			Economics & Recursive formulations of consumption and growth\\
 			\bottomrule
 		\end{tabularx}
 	\end{center}
 \end{frame}
 
 \begin{frame}{Your turn}
-	\audience{Pair}{%
-		Turn to your neighbour for three minutes. Pick a problem you work on.
+	\audience[A problem from your own work]{%
 		\begin{enumerate}
 			\item What is a \textbf{sufficient state}? Is the state graph a DAG?
 			\item Which \textbf{semiring} is it? What is the \textbf{edge count}?
 			\item Which \textbf{lever} (recurrence, order, schedule) could reduce it?
 		\end{enumerate}
-		Then we collect two or three examples, including the ones that \emph{failed} the test.
 	}
 \end{frame}
 
 \begin{frame}{What we learned}
 	\begin{enumerate}
-		\item \textbf{DP is path-finding in a state space.} A sufficient state and an acyclic order give a recurrence, and complexity is the number of edges.
-		\item \textbf{Not every sequence of decisions is a DP.} Check for a compact sufficient state \emph{and} for cheaper structure (monotone decision problems, exchange arguments).
-		\item \textbf{Speed comes from the shape of the DAG.} Rewrite the recurrence (convex hull trick) or refine the order (broken profile).
-		\item \textbf{Beyond DAGs, DP is a fixed-point computation.} Bellman operators are contractions; value iteration, policy iteration and \emph{asynchronous} schedules are different ways of reaching the fixed point.
+		\item \textbf{DP is path-finding in a state space.} Complexity is the number of edges.
+		\item \textbf{Not every sequence of decisions is a DP.} Check for a compact sufficient state \emph{and} for cheaper structure.
+		\item \textbf{Speed comes from the shape of the DAG.} Rewrite the recurrence or refine the order.
+		\item \textbf{Beyond DAGs, DP is a fixed-point computation.} Value iteration, policy iteration and asynchronous schedules all reach the same fixed point.
 		\item \textbf{The reach is wide.} Semirings, linear programs, control and learning share the same recurrence.
 	\end{enumerate}
 \end{frame}

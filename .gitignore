@@ -322,4 +322,5 @@ Thumbs.db
 
 Pipfile.lock
 .ipynb_checkpoints
-presentation.pdf
+!presentation.pdf
+!presentation_audience.pdf

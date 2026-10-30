@@ -1,11 +1,7 @@
 \section{Dynamic Programming from First Principles}
 
 \begin{frame}{Calibration}
-	This workshop assumes strong programming and discrete mathematics.
-	Recurrences are written \alert{mathematically}, never as code.
-
-	\vspace{1em}
-	\audience{Poll (show of hands)}{%
+	\audience[Show of hands]{%
 		\begin{enumerate}
 			\item Have you implemented the convex hull trick or a Li Chao tree?
 			\item Can you state the Bellman optimality equation from memory?
@@ -15,9 +11,8 @@
 \end{frame}
 
 \begin{frame}{A motivating problem: minimum edit script}
-	\textbf{Version control.} Given two versions of a file as token sequences
-	$x \in \Sigma^m$ and $y \in \Sigma^n$, produce a cheapest sequence of edits that
-	turns $x$ into $y$.
+	Given two versions of a file as token sequences $x \in \Sigma^m$ and $y \in \Sigma^n$,
+	find a cheapest sequence of edits that turns $x$ into $y$.
 
 	\begin{itemize}
 		\item \textbf{delete} a token of $x$ \hfill cost $1$
@@ -27,25 +22,25 @@
 
 	\seprule
 
-	Goal: compute $\mathrm{ED}(x,y)$, the minimum total cost, and an optimal script.
-	A script is a sequence of $\le m+n$ local decisions: the number of scripts is
-	exponential. What is a \alert{good} way to organise the search?
+	Goal: the minimum total cost $\mathrm{ED}(x,y)$, and an optimal script.
 \end{frame}
 
 \begin{frame}{State spaces}
-	\small
-	\textbf{Definition.} A \alert{state space} is a weighted digraph $G=(V,E,\cost)$ with source $s$ and target $t$:
-	solutions of the problem correspond to $s\to t$ paths, and the objective is the sum of edge weights.
+	\begin{block}{Definition}
+		A \alert{state space} is a weighted digraph $G=(V,E,\cost)$ with source $s$ and target $t$ such that
+		solutions correspond to $s\to t$ paths and the objective is the sum of edge weights.
+	\end{block}
 
 	\begin{itemize}
 		\item A state $v$ summarises a \emph{partial solution}.
 		\item \alert{Sufficiency (Markov property):} the feasible completions of $v$, and
 		their costs, depend only on $v$, not on the path that reached it.
 	\end{itemize}
+\end{frame}
 
-	\seprule
-
-	\textbf{Edit distance.} State $(i,j)$: ``$x_{1..i}$ has been transformed into $y_{1..j}$''. Source $(0,0)$, target $(m,n)$.
+\begin{frame}{The edit-distance state space}
+	State $(i,j)$: ``$x_{1..i}$ has been transformed into $y_{1..j}$''.
+	Source $(0,0)$, target $(m,n)$.
 	\[
 		\begin{array}{lll}
 			(i-1,j)\to(i,j) & \text{delete } x_i & \cost=1\\
@@ -89,72 +84,64 @@
 		\column{0.4\textwidth}
 		\begin{itemize}
 			\item Every edge increases $i+j$: \alert{acyclic}.
-			\item Topological order: row-major (any order by $i+j$).
-			\item Highlighted: \texttt{flaw} $\to$ \texttt{lawn}, cost $2$
-			(delete \texttt{f}, three matches, insert \texttt{n}).
+			\item Highlighted: \texttt{flaw} $\to$ \texttt{lawn}, cost $2$.
+			\item $(m+1)(n+1)$ states, $\le 3$ in-edges each.
 		\end{itemize}
-		\vspace{0.5em}
-		\small $(m+1)(n+1)$ states, $\le 3$ in-edges each.
 	\end{columns}
 \end{frame}
 
 \begin{frame}{Paths versus states}
-	The number of $s\to t$ paths in the $n\times n$ grid with the three step types is the
-	central Delannoy number $D(n,n)\sim c\,(3+2\sqrt2)^n$, while there are only $(n+1)^2$ states.
-
-	\audience{Poll}{%
-		For $m=n=20$: roughly how many edit scripts (paths) are there?\\[0.3em]
+	\audience[How many edit scripts?]{%
+		For $m=n=20$, roughly how many $s\to t$ paths are there?\\[0.5em]
 		(a)~$10^{6}$ \quad (b)~$10^{9}$ \quad (c)~$10^{12}$ \quad (d)~$>10^{14}$
 	}
+\end{frame}
 
-	\uncover<2->{%
-		\begin{center}
-			$D(20,20) = 260{,}543{,}813{,}797{,}441 \approx 2.6\cdot 10^{14}$ paths
-			\quad versus \quad $441$ states.
-		\end{center}
-		Dynamic programming exists because \alert{many paths share the same sub-paths}:
-		the state graph is a compressed representation of the solution space.%
-	}
+\begin{frame}{Paths versus states: answer}
+	The number of paths is the central Delannoy number $D(n,n)\sim c\,(3+2\sqrt2)^n$.
+	\begin{center}
+		$D(20,20) = 260{,}543{,}813{,}797{,}441 \approx 2.6\cdot 10^{14}$ paths
+		\quad versus \quad $(20+1)^2=441$ states.
+	\end{center}
+	The state graph is a \alert{compressed representation} of the solution space.
 \end{frame}
 
 \begin{frame}{Dynamic programming on a DAG}
-	\small
-	\textbf{Theorem.} Let $G=(V,E,\cost)$ be a DAG with source $s$, and $d(v)$ the minimum weight of an
-	$s\to v$ path ($\infty$ if none). Then
-	\[
-		d(s)=0, \qquad d(v)=\min_{(u,v)\in E}\bigl\{\,d(u)+\cost(u,v)\,\bigr\}\quad (v\neq s).
-	\]
-	\textbf{Proof sketch.} An $s\to v$ path is an $s\to u$ path followed by an edge $(u,v)$ and its weight is the
-	sum of the two parts. The choice of prefix does not constrain the last edge, so minimising each prefix is lossless
-	(\alert{optimal substructure}). Acyclicity makes the equations well-founded: induct along a topological order.
+	\begin{theorem}
+		Let $G=(V,E,\cost)$ be a DAG with source $s$, and $d(v)$ the minimum weight of an
+		$s\to v$ path ($\infty$ if none). Then
+		\[
+			d(s)=0, \qquad d(v)=\min_{(u,v)\in E}\bigl\{\,d(u)+\cost(u,v)\,\bigr\}\quad (v\neq s).
+		\]
+	\end{theorem}
+\end{frame}
 
-	\seprule
-
-	Cyclic graphs satisfy the same equations, but they no longer \emph{define} $d$ by induction (Part~4).
+\begin{frame}{Why it works}
+	An $s\to v$ path is an $s\to u$ path followed by an edge $(u,v)$.
+	\begin{itemize}
+		\item \alert{Optimal substructure.} The choice of prefix does not constrain the last edge,
+		so minimising each prefix loses nothing.
+		\item \alert{Well-foundedness.} Acyclicity lets us induct along a topological order.
+	\end{itemize}
 \end{frame}
 
 \begin{frame}{A strategy for dynamic programming problems}
-	\small
 	\begin{enumerate}
 		\item \textbf{Decompose.} Choose a state space: what must be remembered about a
 		partial solution so that the future is independent of the past?
-		\item \textbf{Recurrence.} State the \alert{base case} and the \alert{inductive step}
-		expressing each state through states that precede it.
+		\item \textbf{Recurrence.} State the \alert{base case} and the \alert{inductive step}.
 		\item \textbf{Evaluate bottom-up} in a topological order of the state DAG.
-		\item \textbf{Reconstruct} (if the solution, not only its value, is needed) by
-		recording or recomputing the minimising predecessor of each state.
+		\item \textbf{Reconstruct} the solution, if needed, from the minimising predecessor of each state.
 	\end{enumerate}
+\end{frame}
 
-	\seprule
-
-	\textbf{Complexity is read off the DAG:}
+\begin{frame}{Complexity is read off the DAG}
 	\[
 		T \;=\; \sum_{v\in V} \bigl(\text{work to evaluate state } v\bigr) \;=\; |V|\times(\text{cost per state}) \;\approx\; |E|.
 	\]
 \end{frame}
 
 \begin{frame}{Steps 1--2: the recurrence for edit distance}
-	\small
 	Let $f(i,j)$ be the minimum cost of transforming $x_{1..i}$ into $y_{1..j}$.
 
 	\begin{align*}
@@ -166,20 +153,25 @@
 		\end{cases}
 	\end{align*}
 	Answer: $\mathrm{ED}(x,y)=f(m,n)$.
-
-	\seprule
-
-	\textbf{Why correct?} Consider the \emph{last} operation of an optimal script for
-	$(x_{1..i},y_{1..j})$. It is one of three kinds, and the script before it is a script
-	for the corresponding smaller pair; it must itself be optimal, otherwise it could be replaced
-	by a cheaper one.
 \end{frame}
 
 \begin{frame}{Step 3: bottom-up evaluation}
-	Evaluate $f(i,j)$ row by row (a topological order). Rows: \texttt{flaw}; columns: \texttt{lawn}.
+	\audience[Fill in the last two rows]{%
+		\centering
+		\renewcommand{\arraystretch}{1.15}
+		\begin{tabular}{@{}c|ccccc@{}}
+			& $\varepsilon$ & \texttt{l} & \texttt{a} & \texttt{w} & \texttt{n}\\
+			\midrule
+			$\varepsilon$ & 0 & 1 & 2 & 3 & 4\\
+			\texttt{f} & 1 & 1 & 2 & 3 & 4\\
+			\texttt{l} & 2 & 1 & 2 & 3 & 4\\
+			\texttt{a} & ? & ? & ? & ? & ?\\
+			\texttt{w} & ? & ? & ? & ? & ?\\
+		\end{tabular}
+	}
+\end{frame}
 
-	\audience{Predict}{Fill in the last two rows before we reveal them.}
-
+\begin{frame}{Step 3: bottom-up evaluation, filled in}
 	\centering
 	\renewcommand{\arraystretch}{1.15}
 	\begin{tabular}{@{}c|ccccc@{}}
@@ -188,14 +180,16 @@
 		$\varepsilon$ & 0 & 1 & 2 & 3 & 4\\
 		\texttt{f} & 1 & 1 & 2 & 3 & 4\\
 		\texttt{l} & 2 & 1 & 2 & 3 & 4\\
-		\texttt{a} & \only<1>{?}\only<2>{3} & \only<1>{?}\only<2>{2} & \only<1>{?}\only<2>{\alert{1}} & \only<1>{?}\only<2>{2} & \only<1>{?}\only<2>{3}\\
-		\texttt{w} & \only<1>{?}\only<2>{4} & \only<1>{?}\only<2>{3} & \only<1>{?}\only<2>{2} & \only<1>{?}\only<2>{\alert{1}} & \only<1>{?}\only<2>{\alert{2}}\\
+		\texttt{a} & 3 & 2 & \alert{1} & 2 & 3\\
+		\texttt{w} & 4 & 3 & 2 & \alert{1} & \alert{2}\\
 	\end{tabular}
+
+	\vspace{1em}
+	$\mathrm{ED}(\texttt{flaw},\texttt{lawn})=f(4,4)=2$.
 \end{frame}
 
 \begin{frame}{Step 4: reconstruction}
-	\small
-	Store (or recompute) the minimising predecessor of each state; walk back from $(m,n)$:
+	Walk back from $(m,n)$ along minimising predecessors:
 	\[
 		(4,4)\xleftarrow{\text{insert n}}(4,3)\xleftarrow{\text{match w}}(3,2)\xleftarrow{\text{match a}}(2,1)\xleftarrow{\text{match l}}(1,0)\xleftarrow{\text{delete f}}(0,0).
 	\]
@@ -207,14 +201,13 @@
 			\textrm{del} & = & = & = & \textrm{ins}
 		\end{tabular}
 	\end{center}
+\end{frame}
 
-	\seprule
-
+\begin{frame}{Memory}
 	\begin{itemize}
-		\item Recomputing the argmin on the way back needs only the value table.
-		\item The value table costs $\Theta(mn)$ memory. Rolling two rows gives
-		$\Theta(\min(m,n))$ but loses reconstruction; \alert{Hirschberg's divide-and-conquer}
-		restores it at twice the time and linear space.
+		\item The value table costs $\Theta(mn)$ memory; the argmin can be recomputed from it.
+		\item Rolling two rows: $\Theta(\min(m,n))$ memory, but no reconstruction.
+		\item \alert{Hirschberg's divide-and-conquer}: reconstruction in linear space at twice the time.
 	\end{itemize}
 \end{frame}
 
@@ -227,30 +220,40 @@
 		\item \textbf{Lower bound.} No $O(n^{2-\varepsilon})$ algorithm exists unless SETH
 		fails (Backurs--Indyk, STOC 2015).
 	\end{itemize}
-
-	\seprule
-
-	Lesson: \emph{the state space fixes a baseline}; structure of the instance or of
-	the cost function can beat it, and conditional lower bounds tell us when to stop trying.
 \end{frame}
 
 \begin{frame}{Is the state space really sufficient?}
-	\small
-	\audience{Discuss}{%
+	\audience[Adding transpositions]{%
 		Allow \textbf{transpositions} of adjacent tokens ($ab\to ba$) at cost $1$.
-		(1)~Which edge do you add to the DAG, and when? (2)~Does the complexity change?
-		(3)~Is the result exactly the Damerau--Levenshtein distance?
-	}
-
-	\uncover<2->{%
 		\begin{enumerate}
-			\item Add $(i-2,j-2)\to(i,j)$ with cost $1$ when $x_i=y_{j-1}$ and $x_{i-1}=y_j$.
-			\item Still $\Theta(mn)$: one more $O(1)$ in-edge.
-			\item \alert{No.} This is the \emph{optimal string alignment} distance (no substring is edited twice).
-			For $x=\texttt{CA}$, $y=\texttt{ABC}$ it gives $3$, the true distance is $2$ (\texttt{CA}$\to$\texttt{AC}$\to$\texttt{ABC}).
-			Our edges are \alert{not sufficient}: the exact algorithm needs edges reaching back to the last occurrence of a symbol (see backup).
+			\item Which edge do you add to the DAG, and when?
+			\item Does the complexity change?
+			\item Is the result exactly the Damerau--Levenshtein distance?
 		\end{enumerate}
 	}
+\end{frame}
+
+\begin{frame}{Transpositions: the edge}
+	\begin{enumerate}
+		\item Add $(i-2,j-2)\to(i,j)$ with cost $1$ when $x_i=y_{j-1}$ and $x_{i-1}=y_j$.
+		\item Still $\Theta(mn)$: one more $O(1)$ in-edge per state.
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}{Transpositions: not Damerau--Levenshtein}
+	\begin{enumerate}
+		\setcounter{enumi}{2}
+		\item \alert{No.} This computes the \emph{optimal string alignment} distance, in which no substring is edited twice.
+	\end{enumerate}
+
+	\vspace{0.5em}
+	For $x=\texttt{CA}$, $y=\texttt{ABC}$ it gives $3$.
+	The true distance is $2$: \texttt{CA}$\to$\texttt{AC}$\to$\texttt{ABC}.
+
+	\seprule
+
+	The state space is \alert{not sufficient}. The exact algorithm needs edges reaching back to the
+	last occurrence of a symbol (see backup).
 \end{frame}
 
 \begin{frame}{Part 1 in one slide}
@@ -263,10 +266,5 @@
 
 	\seprule
 
-	\textbf{Design is in step 1.} Steps 2--4 are mechanical once the state space is right,
-	and so is the complexity: $|V|\times$ cost per state.
-
-	\begin{center}
-		Next: problems where the recipe \alert{looks} applicable. Does it help?
-	\end{center}
+	\textbf{Design is in step 1.} Steps 2--4 and the complexity follow mechanically.
 \end{frame}

@@ -1,53 +1,53 @@
 \section{Going Faster}
 
 \begin{frame}{Where does the time go?}
-	Time $\approx\sum_v \text{indeg}(v)=|E|$. Two levers, both about the \emph{shape} of the DAG, not its meaning:
+	Time $\approx\sum_v \text{indeg}(v)=|E|$. Two levers, both about the \emph{shape} of the DAG:
 
 	\begin{enumerate}
-		\item[\alert{I}] \textbf{Change the recurrence.} Algebra on the transition turns
-		``minimum over all predecessors'' into a structured query (a data-structure operation).
-		\item[\alert{II}] \textbf{Change the compute order.} Refine the DAG with intermediate states so
-		that every state has $O(1)$ in-edges, computing the same values.
+		\item[\alert{I}] \textbf{Change the recurrence.} Turn
+		``minimum over all predecessors'' into a structured query.
+		\item[\alert{II}] \textbf{Change the compute order.} Add intermediate states so
+		that every state has $O(1)$ in-edges.
 	\end{enumerate}
-
-	\seprule
-
-	We illustrate (I) with the \textbf{convex hull trick} and (II) with a \textbf{bitmask profile DP}.
 \end{frame}
 
+% ---------------------------------------------------------------- Lever I
 \begin{frame}{Lever I: a problem with a quadratic transition}
-	\textbf{Batched jobs.} Jobs $1,\dots,n$ must be processed in order; job $l$ has size $c_l\ge0$ and $S_i=\sum_{l\le i}c_l$.
-	Partition the sequence into consecutive batches. A batch of total size $s$ costs $M+s^2$ (set-up plus a quadratic penalty).
+	\textbf{Batched jobs.} Jobs $1,\dots,n$ are processed in order; job $l$ has size $c_l\ge0$ and $S_i=\sum_{l\le i}c_l$.
+	Partition the sequence into consecutive batches. A batch of total size $s$ costs $M+s^2$.
 
-	Let $\mathrm{dp}(i)$ be the optimal cost for the first $i$ jobs:
 	\[
 		\mathrm{dp}(0)=0,\qquad
 		\mathrm{dp}(i)=\min_{0\le j<i}\Bigl\{\,\mathrm{dp}(j)+(S_i-S_j)^2+M\,\Bigr\}.
 	\]
 
-	$n$ states, $\Theta(n)$ predecessors each: $\Theta(n^2)$. For $n=10^6$ that is hopeless.
+	$n$ states, $\Theta(n)$ predecessors each: $\Theta(n^2)$.
+\end{frame}
 
-	\audience{Discuss}{%
-		Expand the square. \textbf{Which terms couple $i$ and $j$?}
+\begin{frame}{Lever I: where is the coupling?}
+	\audience[Expand the square]{%
+		\[
+			\mathrm{dp}(i)=\min_{0\le j<i}\Bigl\{\,\mathrm{dp}(j)+(S_i-S_j)^2+M\,\Bigr\}
+		\]
+		Which terms couple $i$ and $j$?
 		What does that suggest about the inner minimisation?
 	}
 \end{frame}
 
 \begin{frame}{Rewriting the recurrence}
-	\small
 	\[
 		\mathrm{dp}(i)=S_i^2+M+\min_{j<i}\Bigl\{\underbrace{(-2S_j)}_{m_j}\cdot S_i+\underbrace{\mathrm{dp}(j)+S_j^2}_{b_j}\Bigr\}.
 	\]
-	Only the cross term $-2S_iS_j$ couples $i$ and $j$. Everything else is a function of $i$ alone or of $j$ alone.
+	Only the cross term $-2S_iS_j$ couples $i$ and $j$.
+\end{frame}
 
-	\seprule
-
+\begin{frame}{A minimum over lines}
 	Define the line $\ell_j(x)=m_jx+b_j$. Then
 	\[
 		\boxed{\;\mathrm{dp}(i)=S_i^2+M+\min_{j<i}\ell_j(S_i)\;}
 	\]
-	The inner term is the \alert{lower envelope} of the lines $\ell_0,\dots,\ell_{i-1}$ evaluated at $S_i$.
-	The line $\ell_i$ becomes available only after $\mathrm{dp}(i)$ is known (an \emph{online} insertion).
+	The inner term is the \alert{lower envelope} of $\ell_0,\dots,\ell_{i-1}$ evaluated at $S_i$.
+	Each line $\ell_i$ is inserted online, once $\mathrm{dp}(i)$ is known.
 \end{frame}
 
 \begin{frame}{The lower envelope}
@@ -71,58 +71,60 @@
 			\legend{$\ell_0$,$\ell_1$ (redundant),$\ell_2$,$\ell_3$}
 		\end{axis}
 	\end{tikzpicture}
-
-	\small Slopes decrease with insertion order ($m_j=-2S_j$, $S_j$ non-decreasing), so each new line
-	is the best one for \emph{large} $x$. The dashed line never attains the minimum and may be discarded.
 \end{frame}
 
 \begin{frame}{The monotone convex hull trick}
-	\small
 	Keep the envelope as a deque $Q$ of lines in insertion order; queries $S_i$ are non-decreasing.
 
 	\begin{enumerate}
 		\item \textbf{Query.} While $|Q|\ge2$ and $\ell_{Q_2}(S_i)\le\ell_{Q_1}(S_i)$, pop the front.
 		Then $\mathrm{dp}(i)=S_i^2+M+\ell_{Q_1}(S_i)$.
-		\item \textbf{Insert} $\ell_i$. While $|Q|\ge2$ and the last line $\ell_2$ (predecessor $\ell_1$; slopes $m_1>m_2>m_i$) is redundant, pop the back:
-		\[
-			\ell_2\text{ redundant}\iff (b_i-b_1)(m_1-m_2)\le(b_2-b_1)(m_1-m_i),
-		\]
-		i.e.\ $\ell_1,\ell_i$ intersect left of $\ell_1,\ell_2$.
+		\item \textbf{Insert} $\ell_i$. While $|Q|\ge2$ and the last line is redundant, pop the back.
 	\end{enumerate}
 
 	\seprule
 
 	Each line is pushed once and popped at most once: \alert{amortised $O(1)$ per state, $\Theta(n)$ in total}.
-	The front can be discarded because later queries are larger and later lines have smaller slopes.
 \end{frame}
 
-\begin{frame}{Robustness of the trick}
-	\small
-	\audience{Vote}{%
-		The data are \textbf{not monotone}. Choose the data structure.
-		(a)~Slopes inserted in decreasing order, \emph{arbitrary} query points.
-		(b)~\emph{Arbitrary} slopes (e.g.\ some $c_l<0$), arbitrary queries, online.
-	}
+\begin{frame}{The redundancy test}
+	Last line $\ell_2$, its predecessor $\ell_1$, new line $\ell_i$; slopes $m_1>m_2>m_i$.
+	\[
+		\ell_2\text{ redundant}\iff (b_i-b_1)(m_1-m_2)\le(b_2-b_1)(m_1-m_i),
+	\]
+	that is, $\ell_1$ and $\ell_i$ intersect left of $\ell_1$ and $\ell_2$.
+\end{frame}
 
-	\uncover<2->{%
+\begin{frame}{When the data are not monotone}
+	\audience[Choose the data structure]{%
 		\begin{enumerate}
-			\item[(a)] Keep the hull as an array and \alert{binary-search} the query: $O(n\log n)$ total.
-			\item[(b)] A \alert{Li Chao tree} over the query domain (or a dynamic hull): $O(\log C)$ per insertion and query
-			($C$ = size of the query domain; compress coordinates offline if needed).
+			\item[(a)] Slopes inserted in decreasing order, \emph{arbitrary} query points.
+			\item[(b)] \emph{Arbitrary} slopes (e.g.\ some $c_l<0$), arbitrary queries, online.
 		\end{enumerate}
-		Implementation note: the redundancy test multiplies differences of intercepts and slopes; for $S\sim10^{9}$ the products need $128$-bit arithmetic.
 	}
+\end{frame}
+
+\begin{frame}{When the data are not monotone: answers}
+	\begin{enumerate}
+		\item[(a)] Keep the hull as an array and \alert{binary-search} the query: $O(n\log n)$ total.
+		\item[(b)] A \alert{Li Chao tree} over the query domain (or a dynamic hull): $O(\log C)$ per insertion and query,
+		where $C$ is the size of the query domain.
+	\end{enumerate}
 \end{frame}
 
 \begin{frame}{What structure was exploited?}
-	\small
 	The trick applies whenever the transition separates as
-	$\mathrm{dp}(i)=\alpha_i+\min_{j<i}\{\beta_j+\gamma_i\,\delta_j\}$. Other structure in $\mathrm{cost}(j,i)$ gives other accelerations:
+	\[
+		\mathrm{dp}(i)=\alpha_i+\min_{j<i}\{\beta_j+\gamma_i\,\delta_j\}.
+	\]
+	Other structure in $\mathrm{cost}(j,i)$ gives other accelerations.
+\end{frame}
 
+\begin{frame}{A catalogue of speed-ups}
 	\footnotesize
 	\begin{center}
-		\renewcommand{\arraystretch}{1.15}
-		\begin{tabular}{@{}p{0.31\textwidth}p{0.4\textwidth}p{0.18\textwidth}@{}}
+		\renewcommand{\arraystretch}{1.25}
+		\begin{tabular}{@{}p{0.35\textwidth}p{0.39\textwidth}p{0.2\textwidth}@{}}
 			\toprule
 			Structure of $\mathrm{cost}(j,i)$ & Technique & Gain\\
 			\midrule
@@ -136,18 +138,23 @@
 	\end{center}
 \end{frame}
 
-\begin{frame}{Lever II: tilings and bitmask DP}
-	\small
-	\textbf{Floorplanning.} Count the tilings of an $n\times m$ board (some cells may be blocked) by $1\times2$ dominoes, with $m$ small ($\le 16$) and $n$ large.
+% ---------------------------------------------------------------- Lever II
+\begin{frame}{Lever II: domino tilings}
+	Count the tilings of an $n\times m$ board (some cells may be blocked) by $1\times2$ dominoes,
+	with $m$ small ($\le 16$) and $n$ large.
 
-	\textbf{Row-by-row.} Let $G_r(M')$ count partial tilings in which rows $<r$ are fully covered and
-	$M'\subseteq\{0,\dots,m-1\}$ are exactly the cells of row $r$ covered by vertical dominoes from row $r-1$.
+	\vspace{0.5em}
+	\textbf{Row-by-row state.} $G_r(M')$ counts partial tilings in which rows $<r$ are fully covered and
+	$M'\subseteq\{0,\dots,m-1\}$ is exactly the set of cells of row $r$ covered by vertical dominoes from row $r-1$.
+\end{frame}
+
+\begin{frame}{Row-by-row recurrence}
 	\[
 		G_0(\emptyset)=1,\qquad
 		G_{r+1}(M')=\sum_{M\;\text{compatible with}\;M'}G_r(M),\qquad\text{answer }G_n(\emptyset).
 	\]
 	$M$ and $M'$ are compatible iff $M\cap M'=\emptyset$ and the cells of the row outside $M\cup M'$ split into
-	runs of even length (to be tiled by horizontal dominoes).
+	runs of even length.
 
 	\seprule
 
@@ -155,34 +162,39 @@
 \end{frame}
 
 \begin{frame}{The edge count is the bottleneck}
-	\audience{Discuss}{%
+	\audience[Fewer edges, same counts]{%
 		There are only $2^m$ states per row, but $3^m$ edges between consecutive rows.
 		Can the \textbf{same} counts be computed with fewer edges?
-		\emph{Hint:} what if we decide one cell at a time?
-	}
-
-	\uncover<2->{%
-		\small
-		Insert intermediate states between rows: process cells in row-major order and keep, as state, the
-		\alert{profile} of the next $m$ cells (already covered or not). Each cell has $O(1)$ choices: skip, place a
-		vertical domino, place a horizontal domino. Same sums, regrouped; edges per state drop from $2^m$ to $O(1)$.
 	}
 \end{frame}
 
+\begin{frame}{One cell at a time}
+	\begin{itemize}
+		\item Process cells in row-major order.
+		\item State: the \alert{profile} of the next $m$ cells (covered or not).
+		\item Each cell has $O(1)$ choices: skip, vertical domino, horizontal domino.
+	\end{itemize}
+
+	\seprule
+
+	Same sums, regrouped. Edges per state drop from $2^m$ to $O(1)$.
+\end{frame}
+
 \begin{frame}{Broken profile DP}
-	\small
-	Number cells $t=rm+c$ in row-major order. Let $F_t(M)$, $M\in\{0,1\}^m$, count partial tilings in which cells $<t$ are
-	covered, and bit $k$ of $M$ says whether cell $t+k$ is already covered.
+	Number cells $t=rm+c$ in row-major order. $F_t(M)$, $M\in\{0,1\}^m$, counts partial tilings in which cells $<t$ are
+	covered; bit $k$ of $M$ says whether cell $t+k$ is already covered.
 	\[
 		F_0(0)=1,\qquad \text{answer }F_{nm}(0).
 	\]
+\end{frame}
+
+\begin{frame}{Broken profile DP: transitions}
 	From $F_t(M)$, with cell $t=(r,c)$:
 	\begin{align*}
 		M_0=1:\;& F_{t+1}\bigl(M\gg1\bigr)\mathrel{+}=F_t(M)\\
 		M_0=0:\;& F_{t+1}\bigl((M\gg1)\,|\,2^{m-1}\bigr)\mathrel{+}=F_t(M) && \text{vertical, if } r+1<n\\
 		M_0=M_1=0:\;& F_{t+1}\bigl((M\gg1)\,|\,1\bigr)\mathrel{+}=F_t(M) && \text{horizontal, if } c+1<m
 	\end{align*}
-	Blocked cells: forbid dominoes that would cover them and let a blocked cell pass through unchanged.
 
 	\seprule
 
@@ -192,12 +204,10 @@
 \begin{frame}{Same values, different DAG}
 	\centering
 	\begin{tikzpicture}[x=1.4cm,y=0.65cm]
-		% left: dense layer to layer
 		\node[font=\scriptsize] at (0.5,2.1) {row-by-row};
 		\foreach \a in {0,1,2,3}{\node[st] (a\a) at (0,-\a+1.5) {};}
 		\foreach \b in {0,1,2,3}{\node[st] (b\b) at (1,-\b+1.5) {};}
 		\foreach \a in {0,1,2,3}{\foreach \b in {0,1,2,3}{\draw[e] (a\a) -- (b\b);}}
-		% right: chain of sparse layers
 		\node[font=\scriptsize] at (5,2.1) {broken profile};
 		\foreach \k in {0,1,2,3}{
 			\foreach \a in {0,1,2,3}{\node[st] (c\k\a) at (3.4+0.9*\k,-\a+1.5) {};}
@@ -207,37 +217,34 @@
 		}
 	\end{tikzpicture}
 
-	\vspace{0.5em}
-	\begin{center}
-		\small
-		\begin{tabular}{@{}lrr@{}}
-			\toprule
-			$m=16$, per row & states & edges\\
-			\midrule
-			row-by-row & $65{,}536$ & $43{,}046{,}721$\\
-			broken profile & $1{,}048{,}576$ & $\le 3{,}145{,}728$\\
-			\bottomrule
-		\end{tabular}
-	\end{center}
-	The state count \emph{grows} (by a factor $m$) while the edge count collapses (by a factor $\approx14$).
-	Cost is edges, not states.
+	\vspace{1em}
+	\begin{tabular}{@{}lrr@{}}
+		\toprule
+		$m=16$, per row & states & edges\\
+		\midrule
+		row-by-row & $65{,}536$ & $43{,}046{,}721$\\
+		broken profile & $1{,}048{,}576$ & $\le 3{,}145{,}728$\\
+		\bottomrule
+	\end{tabular}
 \end{frame}
 
-\begin{frame}{Predict}
-	\audience{Predict}{%
-		How many domino tilings does the $8\times8$ board have?\\[0.3em]
-		(a)~$\sim10^4$ \quad (b)~$\sim10^5$ \quad (c)~$\sim10^7$ \quad (d)~$\sim10^9$ \\[0.6em]
+\begin{frame}{Counting tilings}
+	\audience[How many tilings?]{%
+		How many domino tilings does the $8\times8$ board have?\\[0.5em]
+		(a)~$\sim10^4$ \quad (b)~$\sim10^5$ \quad (c)~$\sim10^7$ \quad (d)~$\sim10^9$ \\[0.8em]
 		And the board with two \textbf{opposite corners} removed?
 	}
+\end{frame}
 
-	\uncover<2->{%
-		\small
-		The DP gives $12{,}988{,}816=(4\cdot901)^2$ tilings of the $8\times8$ board and $\mathbf{0}$ for the mutilated board:
-		a domino covers one black and one white cell, and opposite corners have the same colour.
-		The DP is an \emph{exact} certificate of the colouring argument.
-		(Aside: for planar grids Kasteleyn's Pfaffian method counts tilings in polynomial time. DP is exponential in $m$
-		but handles non-planar constraints and arbitrary local rules.)
-	}
+\begin{frame}{Counting tilings: answer}
+	\begin{itemize}
+		\item $8\times8$ board: $12{,}988{,}816=(4\cdot901)^2$ tilings.
+		\item Opposite corners removed: $\mathbf{0}$.
+	\end{itemize}
+
+	\seprule
+
+	A domino covers one black and one white cell; opposite corners have the same colour.
 \end{frame}
 
 \begin{frame}{Part 3 in one slide}
@@ -256,6 +263,5 @@
 
 	\seprule
 
-	Both are statements about the DAG: \alert{time $=$ number of edges}.
-	In both cases the recurrence's \emph{meaning} did not change.
+	Time $=$ number of edges.
 \end{frame}

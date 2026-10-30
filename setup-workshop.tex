@@ -1,12 +1,12 @@
 % Workshop-specific helpers (kept separate from the template's setup-*.tex files)
 \usetikzlibrary{arrows.meta,positioning,calc}
 
-% Audience-engagement block. Every engagement frame uses this macro, which also
-% lets the build check (see WORKSHOP_GUIDE.md) verify the "one per five slides" rule.
-%   #1: type of interaction (Poll, Vote, Predict, Discuss, Pair, ...)
-%   #2: the prompt shown to the audience
-\newcommand{\audience}[2]{%
-	\begin{alertblock}{Audience \textbar{} #1}#2\end{alertblock}%
+% Question box. Each question for the room sits on its own slide inside this box;
+% how to run it is in WORKSHOP_GUIDE.md, not on the slide.
+%   #1 (optional): a title naming the topic of the question; omit for an untitled box
+%   #2: the question shown to the audience
+\newcommand{\audience}[2][]{%
+	\begin{alertblock}{#1}#2\end{alertblock}%
 }
 
 % Maths shorthands used throughout

@@ -1,23 +1,26 @@
 \section{Is It Dynamic Programming? Case Studies}
 
 \begin{frame}{How this part works}
-	For each problem you will see \alert{candidate solutions}. Your job is to decide:
+	For each problem, decide for every candidate solution:
 	\begin{enumerate}
 		\item Is it \textbf{correct}?
 		\item Is it \textbf{the right tool}?
 	\end{enumerate}
+\end{frame}
 
-	\seprule
-
-	\textbf{Triage test for dynamic programming}
+\begin{frame}{Triage test for dynamic programming}
 	\begin{enumerate}
 		\item Is there a \emph{sufficient} state of polynomial size? (Markov property)
 		\item Does the objective decompose over it? (optimal substructure)
 		\item Is there no cheaper algorithm that exploits more structure?
 	\end{enumerate}
-	A positive answer to (1) and (2) makes DP \emph{correct}; (3) decides whether it is \emph{good}.
+
+	\seprule
+
+	(1) and (2) make DP \emph{correct}; (3) decides whether it is \emph{good}.
 \end{frame}
 
+% ---------------------------------------------------------------- Case 1
 \begin{frame}{Case 1: Split Array Largest Sum (LeetCode 410)}
 	Given $a_1,\dots,a_n\ge 0$ and $k\le n$, split the array into $k$ non-empty
 	contiguous parts so as to \alert{minimise the largest part sum}. Let $S_i=\sum_{l\le i}a_l$.
@@ -25,9 +28,6 @@
 	\seprule
 
 	\textbf{Example.} $a=(7,2,5,10,8)$, $k=2$: the parts $(7,2,5)\,|\,(10,8)$ give $\max\{14,18\}=18$, which is optimal.
-
-	\vspace{1em}
-	We will look at two proposals.
 \end{frame}
 
 \begin{frame}{Case 1: candidate solutions}
@@ -50,43 +50,41 @@
 			as soon as adding the next element would exceed $\bar S$ (until $k-1$ parts are closed).
 		\end{block}
 	\end{columns}
+\end{frame}
 
-	\audience{Vote}{%
-		For each proposal: \textbf{correct} or \textbf{incorrect}? And if correct, is it \textbf{efficient}?
+\begin{frame}{Case 1: your verdict}
+	\audience[Correct? Efficient?]{%
+		For each proposal: \textbf{correct} or \textbf{incorrect}?
+		If correct, is it \textbf{efficient}?
 	}
 \end{frame}
 
-\begin{frame}{Case 1: verdict}
-	\begin{columns}[T,onlytextwidth]
-		\column{0.5\textwidth}
-		\textbf{A is correct.} The state $(i,j)$ is sufficient (only the prefix length and number of parts matter),
-		and $(\max,\min)$ composes. But the cost:
-		\[
-			\underbrace{nk}_{\text{states}}\times\underbrace{O(n)}_{\text{per state}}=\Theta(kn^2).
-		\]
-
-		\column{0.46\textwidth}
-		\textbf{B is wrong.} Take $a=(1,3,2)$, $k=2$: $\bar S=3$, so B closes $(1)$ and returns $(1)\,|\,(3,2)$ with
-		value $5$, while $(1,3)\,|\,(2)$ achieves $4$.
-	\end{columns}
-
-	\seprule
-
-	Greedy heuristics that ``balance'' parts fail because the objective is the \emph{maximum}, not a
-	deviation from the mean. Is there a correct greedy at all?
+\begin{frame}{Case 1: Proposal A is correct, but slow}
+	The state $(i,j)$ is sufficient: only the prefix length and the number of parts matter,
+	and $(\max,\min)$ composes.
+	\[
+		\underbrace{nk}_{\text{states}}\times\underbrace{O(n)}_{\text{per state}}=\Theta(kn^2).
+	\]
 \end{frame}
 
-\begin{frame}{Case 1: a better algorithm, and why DP is wasteful}
-	\small
-	\textbf{Decide, then optimise.} For a cap $L$ let $c(L)$ be the minimum number of parts
-	with every sum $\le L$. The greedy ``extend each part as far as possible'' computes $c(L)$ in $O(n)$
-	(it stays ahead of any other partition).
-
+\begin{frame}{Case 1: Proposal B is wrong}
+	Take $a=(1,3,2)$, $k=2$, so $\bar S=3$.
 	\begin{itemize}
-		\item $c$ is non-increasing in $L$; since $k\le n$, a partition into fewer parts can always be refined.
-		\item The answer is $\min\{L\in[\max_i a_i,\,S_n]\;:\;c(L)\le k\}$, found by binary search.
+		\item B closes $(1)$ and returns $(1)\,|\,(3,2)$: value $5$.
+		\item $(1,3)\,|\,(2)$ achieves $4$.
 	\end{itemize}
-	\vspace{0.3em}
+\end{frame}
+
+\begin{frame}{Case 1: decide, then optimise}
+	For a cap $L$, let $c(L)$ be the minimum number of parts with every sum $\le L$.
+	\begin{itemize}
+		\item Greedy ``extend each part as far as possible'' computes $c(L)$ in $O(n)$.
+		\item $c$ is non-increasing in $L$, and a partition into fewer than $k$ parts can be refined.
+		\item Answer: $\min\{L\in[\max_i a_i,\,S_n]\;:\;c(L)\le k\}$, by binary search.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Case 1: comparison}
 	\begin{center}
 		\begin{tabular}{@{}lc@{}}
 			\toprule
@@ -98,11 +96,10 @@
 			\bottomrule
 		\end{tabular}
 	\end{center}
-	DP computes $f(i,j)$ for \emph{every} prefix and part count, but we need one number.
 \end{frame}
 
-\begin{frame}{Case 1: discussion}
-	\audience{Discuss}{%
+\begin{frame}{Case 1: why the maximum helps}
+	\audience[Minimising the maximum]{%
 		\begin{enumerate}
 			\item Which property of ``minimise the \emph{maximum}'' made the decision version
 			greedy-checkable and monotone in $L$?
@@ -110,111 +107,99 @@
 			on the answer still work? What would you use?
 		\end{enumerate}
 	}
-
-	\uncover<2->{%
-		\small
-		\begin{enumerate}
-			\item The max commutes with refinement: splitting a part never increases the objective,
-			and feasibility under a cap is local.
-			\item No: there is no threshold structure. This is a genuine DP,
-			$f(i,j)=\min_p f(p,j-1)+(S_i-S_p)^2$, and its transition has the form that the
-			\alert{convex hull trick} exploits in Part~3.
-		\end{enumerate}
-	}
 \end{frame}
 
+\begin{frame}{Case 1: answers}
+	\begin{enumerate}
+		\item The maximum commutes with refinement: splitting a part never increases the objective,
+		and feasibility under a cap is local.
+		\item No: there is no threshold structure. This is a genuine DP,
+		\[
+			f(i,j)=\min_p\; f(p,j-1)+(S_i-S_p)^2,
+		\]
+		and its transition has the form that the \alert{convex hull trick} exploits in Part~3.
+	\end{enumerate}
+\end{frame}
+
+% ---------------------------------------------------------------- Case 2
 \begin{frame}{Case 2: Maximum weight independent set on a tree}
 	LeetCode 337 (\emph{House Robber III}); the path case is LeetCode 198.
 
+	\vspace{0.5em}
 	Tree $T=(V,E)$ rooted at $r$, weights $w_v\ge0$. Choose an independent set $I$ maximising $\sum_{v\in I}w_v$.
-	Write $\ch(v)$ for the children and $\gc(v)$ for the grandchildren of $v$.
 
-	\seprule
-
-	\begin{itemize}
-		\item For general graphs the problem is NP-hard.
-		\item On a tree, the subtree of $v$ is separated from the rest of the tree by the single vertex $v$.
-	\end{itemize}
-
-	\begin{center}
-		Where would you put the state?
-	\end{center}
+	\vspace{0.5em}
+	Notation: $\ch(v)$ are the children and $\gc(v)$ the grandchildren of $v$.
 \end{frame}
 
 \begin{frame}{Case 2: candidate solutions}
-	\small
 	\begin{description}
 		\item[\alert{Proposal A}] Greedy: repeatedly take the heaviest remaining vertex and delete its neighbours.
 		\item[\alert{Proposal B}] $f(v)=\max\bigl\{\,w_v+\sum_{c\in\ch(v)}f(c),\;\sum_{c\in\ch(v)}f(c)\bigr\}$
 		\item[\alert{Proposal C}] $f(v)=\max\bigl\{\,w_v+\sum_{g\in\gc(v)}f(g),\;\sum_{c\in\ch(v)}f(c)\bigr\}$
 		\item[\alert{Proposal D}] $f(v,1)=w_v+\sum_{c}f(c,0)$ and $f(v,0)=\sum_c\max\{f(c,0),f(c,1)\}$; answer $\max_b f(r,b)$.
 	\end{description}
+\end{frame}
 
-	\audience{Vote}{%
-		Which proposals are \textbf{correct}? Look for a counterexample for those you reject.
+\begin{frame}{Case 2: your verdict}
+	\audience[Which proposals are correct?]{%
+		Find a counterexample for each proposal you reject.
 	}
 \end{frame}
 
-\begin{frame}{Case 2: verdict}
-	\small
-	\begin{columns}[T,onlytextwidth]
-		\column{0.5\textwidth}
-		\textbf{A and B are wrong.} Path $2-3-2$:
-		\begin{itemize}
-			\item A takes the centre: value $3$; optimum $4$ (both ends).
-			\item B, rooted at the centre: $f(\text{leaf})=2$, so $f(\text{root})=\max\{3+4,4\}=7$.
-			The term $w_v+\sum_c f(c)$ forgets that $f(c)$ may itself use $c$.
-		\end{itemize}
+\begin{frame}{Case 2: A and B are wrong}
+	Path $2-3-2$:
+	\begin{itemize}
+		\item \textbf{A} takes the centre: value $3$. The optimum is $4$ (both ends).
+		\item \textbf{B}, rooted at the centre: $f(\text{leaf})=2$, so $f(\text{root})=\max\{3+4,4\}=7$, which is infeasible.
+		The term $w_v+\sum_c f(c)$ forgets that $f(c)$ may itself use $c$.
+	\end{itemize}
+\end{frame}
 
-		\column{0.46\textwidth}
-		\textbf{C and D are correct.} In D the state records whether $v$ is chosen:
-		\begin{align*}
-			f(v,1)&=w_v+\sum_{c}f(c,0)\\
-			f(v,0)&=\sum_{c}\max_b f(c,b)
-		\end{align*}
-		C is D with the state projected out: $f(v)=\max_b f(v,b)$.
-	\end{columns}
+\begin{frame}{Case 2: C and D are correct}
+	In D the state records whether $v$ is chosen:
+	\begin{align*}
+		f(v,1)&=w_v+\sum_{c}f(c,0)\\
+		f(v,0)&=\sum_{c}\max_b f(c,b)
+	\end{align*}
+	C is D with the state projected out: $f(v)=\max_b f(v,b)$.
 
 	\seprule
 
-	Time $\Theta(\sum_v\deg v)=\Theta(n)$. Both formulations have the same state DAG (the rooted tree), but
-	D carries $2n$ states and has \emph{local} transitions. Enlarging the state to make the transition local is a standard trick.
+	Time $\Theta(\sum_v\deg v)=\Theta(n)$. D has $2n$ states and \emph{local} transitions.
 \end{frame}
 
-\begin{frame}{Case 2: why trees, and what generalises}
-	The tree makes $v$ a \alert{separator}: the two sides interact only through $v$'s status.
-
+\begin{frame}{Case 2: what generalises}
 	\begin{theorem}[folklore]
 		Given a tree decomposition of width $\omega$ of an $n$-vertex graph, a maximum weight independent
 		set can be computed in $O(2^{\omega}\,\omega\, n)$ time.
 	\end{theorem}
-	The state of a bag is the independent subset chosen inside it ($\le 2^{\omega+1}$ states);
-	the structure of the graph \emph{is} the shape of the state DAG.
+	The state of a bag is the independent subset chosen inside it ($\le 2^{\omega+1}$ states).
 
 	\seprule
 
-	\textbf{Same recipe, different shape.}
-	Trees ($\omega=1$), cycles ($\omega=2$), series-parallel graphs ($\omega\le2$), grids $k\times n$ ($\omega=k$).
+	Trees ($\omega=1$), cycles ($\omega=2$), series-parallel graphs ($\omega\le2$), $k\times n$ grids ($\omega=k$).
 \end{frame}
 
-\begin{frame}{Case 2: discussion}
-	\audience{Discuss}{%
+\begin{frame}{Case 2: from trees to cycles}
+	\audience[Independent set on a cycle]{%
 		Now let the graph be a \textbf{cycle} $C_n$ with weights $w_1,\dots,w_n$.
 		The tree recurrence is no longer valid. Fix it, and give the complexity.
 	}
-
-	\uncover<2->{%
-		\small
-		Fix the status $b_1$ of vertex $1$ and run the path DP on $1,\dots,n$ with that boundary condition
-		(for $b_1=1$ vertex $n$ is forbidden): two path DPs, $\Theta(n)$ in total.
-		Equivalently, enlarge the state to $(b_1,b_{\text{current}})$: this is the width-$2$ tree decomposition
-		made explicit, with $4$ states per position.
-	}
 \end{frame}
 
+\begin{frame}{Case 2: the cycle}
+	\begin{itemize}
+		\item Fix the status $b_1$ of vertex $1$ and run the path DP on $1,\dots,n$ with that boundary condition
+		(for $b_1=1$, vertex $n$ is forbidden). Two path DPs: $\Theta(n)$.
+		\item Equivalently, enlarge the state to $(b_1,b_{\text{current}})$: $4$ states per position.
+	\end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------- Case 3
 \begin{frame}{Case 3: Minimum Initial Energy to Finish Tasks (LeetCode 1665)}
 	Tasks $i=1,\dots,n$ with $(a_i,m_i)$, $a_i\le m_i$: to \emph{start} task $i$ you need at least $m_i$ energy,
-	and finishing it consumes $a_i$. Choose the order $\pi$ and the initial energy $E$ to finish all tasks, minimising $E$.
+	and finishing it consumes $a_i$. Choose the order $\pi$ to minimise the initial energy $E$.
 
 	\seprule
 
@@ -223,88 +208,80 @@
 		E(\pi)=\max_{t}\Bigl(m_{\pi(t)}+\sum_{s<t}a_{\pi(s)}\Bigr),\qquad
 		E^\star=\min_{\pi}E(\pi).
 	\]
-	The order is a free choice. There are $n!$ orders.
-
-	\begin{center}
-		It looks like a perfect candidate for DP: a sequence of decisions, additive consumption.
-	\end{center}
 \end{frame}
 
 \begin{frame}{Case 3: candidate solutions}
 	Let $A(S)=\sum_{i\in S}a_i$.
-	\small
 	\begin{description}
-		\item[\alert{Proposal A}] Sort by $m_i$ in \emph{decreasing} order and do tasks in that order.
+		\item[\alert{Proposal A}] Sort by $m_i$ in \emph{decreasing} order.
 		\item[\alert{Proposal B}] Sort by $a_i$ in \emph{increasing} order.
-		\item[\alert{Proposal C}] $F(\emptyset)=0$, $\;F(S)=\min_{i\in S}\max\bigl\{F(S\setminus\{i\}),\;A(S\setminus\{i\})+m_i\bigr\}$; answer $F([n])$.
+		\item[\alert{Proposal C}] $F(\emptyset)=0$,\\
+		$F(S)=\min_{i\in S}\max\bigl\{F(S\setminus\{i\}),\;A(S\setminus\{i\})+m_i\bigr\}$;\\
+		answer $F([n])$.
 	\end{description}
+\end{frame}
 
-	\audience{Vote}{%
-		Correct or incorrect? Is C a ``dynamic programming solution''? Is it a \emph{useful} one?
+\begin{frame}{Case 3: your verdict}
+	\audience[Correct? Useful?]{%
+		\begin{enumerate}
+			\item Which proposals are correct?
+			\item Is C a ``dynamic programming solution''? Is it a \emph{useful} one?
+		\end{enumerate}
 	}
 \end{frame}
 
-\begin{frame}{Case 3: verdict}
-	\small
+\begin{frame}{Case 3: A and B are wrong}
 	Tasks written $[a_i,m_i]$.
 	\begin{itemize}
-		\item \textbf{A is wrong:} $[1,2],[3,3]$. A runs $[3,3]$ first and needs $\max\{3,\,3+2\}=5$;
+		\item \textbf{A:} $[1,2],[3,3]$. A runs $[3,3]$ first and needs $\max\{3,\,3+2\}=5$;
 		running $[1,2]$ first needs $\max\{2,\,1+3\}=4$.
-		\item \textbf{B is wrong:} $[1,1],[2,3]$. B needs $\max\{1,1+3\}=4$; the other order needs $\max\{3,2+1\}=3$.
-		\item \textbf{C is correct.} The energy left after finishing a set $S$ is $E-A(S)$ \emph{whatever the order}, so
-		the set is a sufficient state.
+		\item \textbf{B:} $[1,1],[2,3]$. B needs $\max\{1,1+3\}=4$; the other order needs $\max\{3,2+1\}=3$.
 	\end{itemize}
+\end{frame}
+
+\begin{frame}{Case 3: C is correct, but does not compress}
+	The energy left after finishing a set $S$ is $E-A(S)$ \emph{whatever the order}, so
+	the set is a sufficient state.
 
 	\seprule
 
-	But the state is the \alert{whole subset}: $2^n$ states, $\Theta(2^nn)$ time. No polynomial-size sufficient state
-	is apparent: the future depends on \emph{which} tasks remain, not on a number summarising them.
-	This is the sense in which the DP is a false positive: the formulation is valid, but the state does not compress.
+	But the state is the \alert{whole subset}: $2^n$ states, $\Theta(2^nn)$ time.
+	The future depends on \emph{which} tasks remain, not on a number summarising them.
 \end{frame}
 
-\begin{frame}{Case 3: what actually solves it}
-	\small
-	\textbf{Key} $\kappa_i=m_i-a_i$. \alert{Claim:} an order sorted by decreasing $\kappa$ is optimal.
+\begin{frame}{Case 3: an exchange argument}
+	Key $\kappa_i=m_i-a_i$. \alert{Claim:} an order sorted by decreasing $\kappa$ is optimal.
 
-	\begin{proof}[Exchange argument]
-		Suppose $i$ is run immediately before $j$ with $\kappa_i\ge\kappa_j$ versus the swapped order,
-		with identical energy before and after the pair. Then
-		\begin{align*}
-			E(i,j)&=\max\{a_i+\kappa_i,\;a_i+a_j+\kappa_j\}\\
-			&\le a_i+a_j+\kappa_i\le \max\{m_j,\;a_j+m_i\}=E(j,i).
-		\end{align*}
-		Any order with an adjacent pair violating $\kappa_i\ge\kappa_j$ is therefore no better than
-		the order with the pair swapped; repeated swaps sort the sequence (bubble sort) without increasing the requirement.
-	\end{proof}
-
-	Time $O(n\log n)$. The structure that makes this problem easy is an \alert{exchange argument}, not a state space.
+	\vspace{0.5em}
+	Run $i$ immediately before $j$ with $\kappa_i\ge\kappa_j$:
+	\begin{align*}
+		E(i,j)&=\max\{a_i+\kappa_i,\;a_i+a_j+\kappa_j\}\\
+		&\le a_i+a_j+\kappa_i\le \max\{m_j,\;a_j+m_i\}=E(j,i).
+	\end{align*}
+	Swapping adjacent out-of-order pairs never increases the requirement. Time $O(n\log n)$.
 \end{frame}
 
+% ---------------------------------------------------------------- Rapid fire
 \begin{frame}{Rapid fire: DP, or not?}
-	\audience{Vote}{%
-		For each: \textbf{DP}, \textbf{something better}, or \textbf{no compact DP}?
+	\audience[DP, something better, or no compact DP?]{%
+		\begin{enumerate}
+			\item Minimum number of coins summing to $V$.
+			\item Unweighted interval scheduling (maximum number of disjoint intervals).
+			\item Longest \emph{simple} path in a general directed graph.
+			\item $0/1$ knapsack with $n=40$ items and weights up to $10^{12}$.
+			\item Longest increasing subsequence.
+			\item Shortest paths in a graph with cycles and non-negative weights.
+		\end{enumerate}
 	}
-	\small
-	\begin{enumerate}
-		\item Minimum number of coins summing to $V$.
-		\item Unweighted interval scheduling (maximum number of disjoint intervals).
-		\item Longest \emph{simple} path in a general directed graph.
-		\item $0/1$ knapsack with $n=40$ items and weights up to $10^{12}$.
-		\item Longest increasing subsequence.
-		\item Shortest paths in a graph with cycles and non-negative weights.
-	\end{enumerate}
 \end{frame}
 
 \begin{frame}{Rapid fire: answers}
-	\small
 	\begin{enumerate}
 		\item \textbf{DP.} State $=$ remaining amount.
-		\item \textbf{Something better.} Earliest-finish-time greedy ($O(n\log n)$); DP is valid but unnecessary.
-		\item \textbf{No compact DP.} NP-hard; subset DP is $\Theta(2^nn)$, the state has to record the visited set.
-		\item \textbf{Something better.} $O(nW)$ is hopeless; meet-in-the-middle gives $O(2^{n/2}\,n)$.
-		\item \textbf{DP, then better.} $O(n^2)$ DP; changing the state to \emph{(length $\to$ smallest tail)}
-		gives $O(n\log n)$ by patience sorting.
-		\item \textbf{DP in disguise.} The Bellman equations hold but are cyclic; Dijkstra chooses an
-		evaluation order. This is the theme of Part~4.
+		\item \textbf{Something better.} Earliest-finish-time greedy, $O(n\log n)$.
+		\item \textbf{No compact DP.} NP-hard; subset DP is $\Theta(2^nn)$.
+		\item \textbf{Something better.} Meet-in-the-middle, $O(2^{n/2}\,n)$.
+		\item \textbf{DP, then better.} $O(n^2)$ DP; state \emph{(length $\to$ smallest tail)} gives $O(n\log n)$.
+		\item \textbf{DP in disguise.} Cyclic Bellman equations; Dijkstra chooses the order (Part~4).
 	\end{enumerate}
 \end{frame}
