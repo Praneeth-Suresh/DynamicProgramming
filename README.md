@@ -11,7 +11,12 @@ element (poll, vote, predict, discuss, or pair), and the case studies ask the ro
 candidate solutions before the answer is revealed.
 
 
-# Contents
+## Explore the workshop
+
+- [Read the presenter's guide](WORKSHOP_GUIDE.md) for the lesson outline, audience prompts, and worked answers in Markdown. No LaTeX installation is required to read it.
+- [Browse the slide source](presentation.tex) or [build the PDF](#building) to view the full deck. The PDF is generated locally rather than tracked on this branch.
+
+## Contents
 
 | File | Purpose |
 |------|---------|
@@ -27,12 +32,11 @@ candidate solutions before the answer is revealed.
 
 The deck has 118 numbered slides plus section dividers and a short appendix (references
 and a backup slide). Each slide is a single page: questions sit on their own slides with the
-answer on the next one, and spoken material lives in `WORKSHOP_GUIDE.md`. The earlier, denser
-version of the deck is kept as `presentation_audience.pdf`. Suggested running time is about
+answer on the next one, and spoken material lives in `WORKSHOP_GUIDE.md`. Suggested running time is about
 2.5 to 3 hours with discussion.
 
 
-# Structure of the workshop
+## Structure of the workshop
 
 1. **Dynamic Programming from First Principles.** Introduces the *state space* of a problem and
    shows that when it forms a directed acyclic graph (DAG), the problem is solved by dynamic
@@ -44,7 +48,7 @@ version of the deck is kept as `presentation_audience.pdf`. Suggested running ti
    with suggested solutions the audience judges:
    - *Split Array Largest Sum* — a false positive (DP is correct but inefficient);
    - *Maximum weight independent set on a tree* — a genuine DP;
-   - *Minimum Initial Energy to Finish Tasks* — a false positive (no compact sufficient state).
+   - *Minimum Initial Energy to Finish Tasks* — a greedy ordering case study, not a good use of DP.
 3. **Going Faster.** Two techniques: changing the recurrence (the convex hull trick) and changing
    the compute order (a DP-plus-bitmask / broken-profile approach).
 4. **Beyond Programming Problems.** Reinforcement learning as a Markov decision process, solved via
@@ -57,7 +61,7 @@ Throughout, every solution to a DP problem is presented as a **recurrence**, in 
 never as code.
 
 
-# Requirements
+## Requirements
 
 - A LaTeX installation including the [metropolis theme](https://ctan.org/pkg/beamertheme-metropolis),
   which ships with popular distributions (TeX Live, MiKTeX).
@@ -65,13 +69,14 @@ never as code.
   default. Install them on your machine if you want to use them.
 
 
-# Building
+## Building
 
 ```bash
-lualatex presentation.tex   # run twice so the outline and slide numbering settle
+lualatex -interaction=nonstopmode -halt-on-error presentation.tex
+lualatex -interaction=nonstopmode -halt-on-error presentation.tex
 ```
 
-If you prefer a container with everything preinstalled:
+Open the generated `presentation.pdf` after the second pass. If you prefer a TeX Live container:
 
 ```bash
 docker run --rm -v "$PWD":/work -w /work texlive/texlive:latest \
@@ -79,7 +84,7 @@ docker run --rm -v "$PWD":/work -w /work texlive/texlive:latest \
 ```
 
 
-# Customising
+## Customising
 
 - **Title / author.** Edit `\title`, `\author`, `\institute`, and `\date` in `presentation.tex`.
 - **Logo.** Uncomment the `\titlegraphic{...}` line in `presentation.tex` and point it at your
@@ -96,7 +101,7 @@ docker run --rm -v "$PWD":/work -w /work texlive/texlive:latest \
   in `setup-workshop.tex`, on a slide of its own. The title is optional and should name the topic.
 
 
-# Notes
+## Notes
 
 - The remarks about the LeetCode problems are from memory of their statements; verify the current
   statements and constraints before presenting if you intend to quote them.
@@ -106,7 +111,7 @@ docker run --rm -v "$PWD":/work -w /work texlive/texlive:latest \
   and the `setup-*.tex` files; it does not pick up the `content-*.tex` files added here.
 
 
-# License
+## License
 
 See [`LICENSE`](LICENSE). The template this is based on is a clean-and-simple beamer presentation
 template using the metropolis theme.
